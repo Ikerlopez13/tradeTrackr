@@ -1,36 +1,160 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TradeTracker - Aplicación de Trading Journal
 
-## Getting Started
+Una aplicación moderna para registrar y analizar tus trades de trading, construida con Next.js 15, TypeScript, Supabase y Tailwind CSS.
 
-First, run the development server:
+## 🚀 Características
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- ✅ Autenticación completa (email/password y OAuth con Google)
+- ✅ Registro de trades con formulario intuitivo
+- ✅ Dashboard con estadísticas de rendimiento
+- ✅ Diseño espacial moderno con tema oscuro
+- ✅ Interfaz en español
+- ✅ Base de datos segura con Row Level Security
+- ✅ Responsive design
+
+## 🛠️ Configuración
+
+### 1. Configurar Supabase
+
+1. Ve a [supabase.com](https://supabase.com) y crea una nueva cuenta
+2. Crea un nuevo proyecto
+3. Ve a **SQL Editor** en el dashboard de Supabase
+4. Ejecuta el contenido del archivo `supabase-schema.sql` para crear las tablas y configuraciones
+
+### 2. Configurar Variables de Entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto con:
+
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_de_supabase
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Para obtener estas credenciales:**
+1. Ve a tu proyecto en Supabase
+2. Ve a **Settings** → **API**
+3. Copia la **Project URL** y la **anon public key**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Configurar Autenticación OAuth (Opcional)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Para habilitar login con Google:
 
-## Learn More
+1. Ve a **Authentication** → **Providers** en Supabase
+2. Habilita **Google**
+3. Configura tu **Google OAuth Client ID** y **Client Secret**
+4. Añade tu dominio a las **Redirect URLs**
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Instalar Dependencias y Ejecutar
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Estructura del Proyecto
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── login/page.tsx          # Página de inicio de sesión
+│   ├── signup/page.tsx         # Página de registro
+│   ├── dashboard/page.tsx      # Dashboard con estadísticas
+│   ├── page.tsx               # Formulario de registro de trades
+│   ├── layout.tsx            # Layout principal
+│   └── globals.css           # Estilos globales
+├── lib/
+│   └── supabase/
+│       ├── client.ts         # Cliente de Supabase (browser)
+│       └── server.ts         # Cliente de Supabase (server)
+├── types/
+│   └── database.ts           # Tipos de TypeScript para la DB
+└── middleware.ts             # Middleware de autenticación
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🗄️ Esquema de Base de Datos
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Tablas principales:
+
+- **profiles**: Perfiles de usuario
+- **trades**: Registro de trades
+- **user_stats**: Estadísticas calculadas automáticamente
+
+### Características de seguridad:
+- Row Level Security habilitado
+- Políticas de acceso por usuario
+- Triggers automáticos para actualizar estadísticas
+
+## 🎨 Diseño
+
+- **Tema**: Espacial oscuro con gradientes
+- **Colores**: Negros, grises y acentos azules/verdes/rojos
+- **Efectos**: Glass-morphism y backdrop blur
+- **Responsive**: Optimizado para desktop y móvil
+
+## 📊 Funcionalidades del Trading Journal
+
+### Registro de Trades:
+- Título personalizado
+- Par de divisas
+- Timeframe
+- Sesión de trading
+- Bias del mercado (Alcista/Bajista)
+- Risk:Reward ratio
+- Resultado (Win/Loss/BE)
+- Nivel de confianza con slider
+- Descripción detallada
+- Upload de screenshots (próximamente)
+
+### Dashboard:
+- Total de trades
+- Trades ganadores/perdedores
+- Win rate calculado automáticamente
+- Lista de trades recientes
+- Estadísticas visuales
+
+## 🔧 Tecnologías Utilizadas
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS
+- **Backend**: Supabase (PostgreSQL)
+- **Autenticación**: Supabase Auth
+- **Deployment**: Vercel (recomendado)
+
+## 🚀 Deployment
+
+### Vercel (Recomendado):
+
+1. Conecta tu repositorio de GitHub con Vercel
+2. Configura las variables de entorno en Vercel
+3. Deploy automático
+
+### Variables de entorno en producción:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+## 🤝 Contribuir
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📝 Próximas Funcionalidades
+
+- [ ] Upload de screenshots
+- [ ] Gráficos de rendimiento
+- [ ] Análisis por pares de divisas
+- [ ] Exportar datos a CSV
+- [ ] Modo claro/oscuro
+- [ ] Notificaciones push
+- [ ] Integración con APIs de trading
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT - ve el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+
+**¡Happy Trading! 📈** 
