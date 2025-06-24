@@ -272,7 +272,7 @@ export default function Home() {
           bias: selectedBias,
           risk_reward: formData.riskReward,
           result: selectedResult,
-          confidence: confidence,
+          feeling: confidence,
           description: formData.description,
           confluences: formData.confluences,
           pnl_percentage: pnl_percentage,

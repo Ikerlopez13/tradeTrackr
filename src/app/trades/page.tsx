@@ -15,7 +15,7 @@ interface Trade {
   risk_reward: string
   created_at: string
   bias: string
-  confidence: number
+  feeling: number
   description: string
   confluences: string | null
   pnl_percentage: number | null
@@ -222,13 +222,13 @@ export default function TradesPage() {
                       </div>
                     )}
 
-                    {trade.confidence && (
+                    {trade.feeling && (
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-400 text-sm">Confianza:</span>
-                        <span className="text-white font-medium">{trade.confidence}%</span>
+                        <span className="text-gray-400 text-sm">Sentimiento:</span>
+                        <span className="text-white font-medium">{trade.feeling}%</span>
                         <span className="text-lg">
-                          {trade.confidence <= 30 ? '😞' : 
-                           trade.confidence <= 70 ? '🤔' : '😊'}
+                          {trade.feeling <= 30 ? '😞' : 
+                           trade.feeling <= 70 ? '🤔' : '😊'}
                         </span>
                       </div>
                     )}
