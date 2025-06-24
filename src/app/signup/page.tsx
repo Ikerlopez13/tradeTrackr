@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -12,7 +12,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [message, setMessage] = useState('')
   
   const router = useRouter()
   const supabase = createClient()
@@ -21,7 +21,7 @@ export default function Signup() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    setSuccess('')
+    setMessage('')
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden')
@@ -44,10 +44,8 @@ export default function Signup() {
       if (error) {
         setError(error.message)
       } else {
-        setSuccess('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.')
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
+        setMessage('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.')
+        setTimeout(() => router.push('/login'), 3000)
       }
     } catch (err) {
       setError('Error inesperado')
@@ -57,102 +55,107 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
-      <div className="max-w-md w-full px-6">
-        {/* Logo y título */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-6">
-            <Image
-              src="/logo.jpeg"
-              alt="TradeTrackr Logo"
-              width={60}
-              height={60}
-              priority
-              unoptimized
-              className="rounded-lg mr-3 shadow-lg border-2 border-white/20"
-              style={{
-                filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.3))'
-              }}
-            />
-            <h1 className="text-2xl font-bold text-white">TradeTrackr</h1>
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">Crear Cuenta</h2>
-          <p className="text-gray-400 text-sm">Únete a la comunidad de traders</p>
+    <div className="min-h-screen flex flex-col" style={{backgroundColor: '#010314'}}>
+      {/* Header simple con logo */}
+      <header className="pt-8 pb-4">
+        <div className="flex items-center justify-center px-6">
+          <Image
+            src="/logo.jpeg"
+            alt="TradeTrackr Logo"
+            width={48}
+            height={48}
+            priority
+            unoptimized
+            className="rounded-lg mr-3 animate-scale-cycle"
+          />
+          <h1 className="text-2xl font-bold text-white">TradeTrackr</h1>
         </div>
+      </header>
 
-        {/* Formulario */}
-        <form onSubmit={handleSignup} className="space-y-5">
-          {error && (
-            <div className="bg-red-600/20 border border-red-600 rounded-lg p-3 text-red-400 text-sm">
-              {error}
+      {/* Contenido principal centrado */}
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h2 className="text-xl font-bold text-white mb-2">
+              Crear cuenta
+            </h2>
+            <p className="text-gray-400 text-sm">
+              Únete a TradeTrackr y comienza tu journey de trading
+            </p>
+          </div>
+
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <label className="block text-white font-medium mb-2 text-sm">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@email.com"
+                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
+                required
+              />
             </div>
-          )}
 
-          {success && (
-            <div className="bg-green-600/20 border border-green-600 rounded-lg p-3 text-green-400 text-sm">
-              {success}
+            <div>
+              <label className="block text-white font-medium mb-2 text-sm">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
+                required
+              />
             </div>
-          )}
 
-          <div>
-            <label className="block text-white font-medium mb-2 text-base">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
-              required
-            />
+            <div>
+              <label className="block text-white font-medium mb-2 text-sm">
+                Confirmar Contraseña
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-600/20 border border-red-600/30 text-red-400 p-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="bg-green-600/20 border border-green-600/30 text-green-400 p-3 rounded-lg text-sm">
+                {message}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-white text-black font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+            </button>
+          </form>
+
+          <div className="text-center mt-6">
+            <p className="text-gray-400 text-sm">
+              ¿Ya tienes cuenta?{' '}
+              <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                Inicia sesión aquí
+              </Link>
+            </p>
           </div>
-
-          <div>
-            <label className="block text-white font-medium mb-2 text-base">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-white font-medium mb-2 text-base">
-              Confirmar Contraseña
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-white text-black font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors text-base shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-          </button>
-        </form>
-
-        {/* Enlaces */}
-        <div className="mt-6 text-center">
-          <p className="text-gray-400 text-sm">
-            ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
-              Iniciar sesión
-            </Link>
-          </p>
         </div>
       </div>
     </div>
