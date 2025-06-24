@@ -34,21 +34,33 @@ export default function ProfilePage() {
 
   const loadUserData = async (userId: string) => {
     try {
+      console.log('Loading user data for:', userId)
+      
       // Cargar estadísticas
-      const { data: statsData } = await supabase
+      const { data: statsData, error: statsError } = await supabase
         .from('user_stats')
         .select('*')
         .eq('user_id', userId)
         .single()
 
+      console.log('Stats data:', { statsData, statsError })
+      if (statsError && statsError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error loading stats:', statsError)
+      }
+      
       setStats(statsData)
 
       // Cargar perfil
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
+
+      console.log('Profile data:', { profileData, profileError })
+      if (profileError) {
+        console.error('Error loading profile:', profileError)
+      }
 
       setProfile(profileData)
     } catch (err) {
@@ -62,36 +74,50 @@ export default function ProfilePage() {
   }
 
   const updateAccountBalance = async () => {
-    if (!user || !newBalance) return
+    if (!user || !newBalance) {
+      console.log('Missing user or newBalance:', { user: !!user, newBalance })
+      return
+    }
 
     try {
       const balance = parseFloat(newBalance)
+      console.log('Parsed balance:', balance)
+      
       if (isNaN(balance) || balance <= 0) {
         alert('Por favor ingresa un balance válido')
         return
       }
 
-      const { error } = await supabase
+      console.log('Updating balance for user:', user.id, 'to:', balance)
+
+      const { data, error } = await supabase
         .from('profiles')
         .update({ account_balance: balance })
         .eq('id', user.id)
+        .select()
+
+      console.log('Supabase update result:', { data, error })
 
       if (error) {
         console.error('Error updating balance:', error)
-        alert('Error al actualizar el balance')
+        alert(`Error al actualizar el balance: ${error.message}`)
       } else {
+        console.log('Balance updated successfully:', data)
+        
+        // Actualizar el estado local inmediatamente
         setProfile({ ...profile, account_balance: balance })
         setEditingBalance(false)
         setNewBalance('')
         
         // Recargar datos del usuario para recalcular estadísticas
+        console.log('Reloading user data...')
         await loadUserData(user.id)
         
         alert('Balance actualizado exitosamente. Las estadísticas se han recalculado.')
       }
     } catch (err) {
-      console.error('Error:', err)
-      alert('Error inesperado')
+      console.error('Unexpected error:', err)
+      alert(`Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`)
     }
   }
 
