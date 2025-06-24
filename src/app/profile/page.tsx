@@ -83,7 +83,11 @@ export default function ProfilePage() {
         setProfile({ ...profile, account_balance: balance })
         setEditingBalance(false)
         setNewBalance('')
-        alert('Balance actualizado exitosamente')
+        
+        // Recargar datos del usuario para recalcular estadísticas
+        await loadUserData(user.id)
+        
+        alert('Balance actualizado exitosamente. Las estadísticas se han recalculado.')
       }
     } catch (err) {
       console.error('Error:', err)
@@ -216,8 +220,53 @@ export default function ProfilePage() {
                   <span className="text-2xl">💰</span>
                   <span className="text-gray-400 text-sm">Balance de Cuenta</span>
                 </div>
+                
+                {/* Balance actual calculado automáticamente */}
+                <div className="text-center mb-3">
+                  <div className="text-2xl font-bold text-green-400 mb-1">
+                    ${(stats?.current_balance || profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-gray-400 text-xs">Balance Actual</div>
+                </div>
+
+                {/* Mostrar balance inicial y P&L si hay trades */}
+                {stats && stats.total_trades > 0 && (
+                  <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400">Balance Inicial:</span>
+                      <span className="text-gray-300">
+                        ${(profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {stats.total_pnl_percentage && (
+                      <div className="flex justify-between items-center text-sm mt-1">
+                        <span className="text-gray-400">P&L Total:</span>
+                        <span className={`font-medium ${
+                          stats.total_pnl_percentage > 0 ? 'text-green-400' : 
+                          stats.total_pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {stats.total_pnl_percentage > 0 ? '+' : ''}{stats.total_pnl_percentage.toFixed(2)}%
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-gray-400">Ganancia/Pérdida:</span>
+                      <span className={`font-medium ${
+                        (stats?.current_balance || 0) > (profile?.account_balance || 1000) ? 'text-green-400' : 
+                        (stats?.current_balance || 0) < (profile?.account_balance || 1000) ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {((stats?.current_balance || 0) - (profile?.account_balance || 1000)) > 0 ? '+' : ''}
+                        ${((stats?.current_balance || 0) - (profile?.account_balance || 1000)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
                 {editingBalance ? (
                   <div className="space-y-3">
+                    <div className="text-xs text-gray-400 mb-2">
+                      Cambiar balance inicial (esto recalculará tu balance actual)
+                    </div>
                     <input
                       type="number"
                       value={newBalance}
@@ -245,10 +294,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <div className="text-2xl font-bold text-green-400 mb-1">
-                      ${(profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
+                  <div className="text-center">
                     <button
                       onClick={() => {
                         setEditingBalance(true)
@@ -256,7 +302,7 @@ export default function ProfilePage() {
                       }}
                       className="text-blue-400 text-xs hover:text-blue-300 transition-colors"
                     >
-                      Editar balance
+                      Editar balance inicial
                     </button>
                   </div>
                 )}
