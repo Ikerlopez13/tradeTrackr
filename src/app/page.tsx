@@ -35,10 +35,23 @@ export default function Home() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      console.log('🔍 DEBUG - Getting user...')
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      console.log('🔍 DEBUG - Auth result:')
+      console.log('   - user:', user)
+      console.log('   - error:', error)
+      
+      if (error) {
+        console.error('❌ Auth error:', error)
+      }
+      
       setUser(user)
       if (user) {
+        console.log('✅ User authenticated:', user.id, user.email)
         await loadUserData(user.id)
+      } else {
+        console.log('⚠️ No authenticated user')
       }
       setLoading(false)
     }
@@ -47,8 +60,13 @@ export default function Home() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔍 DEBUG - Auth state change:', event)
+        console.log('   - session:', session)
+        console.log('   - user:', session?.user)
+        
         setUser(session?.user ?? null)
         if (session?.user) {
+          console.log('✅ User from session:', session.user.id, session.user.email)
           loadUserData(session.user.id)
         }
       }
@@ -213,79 +231,108 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
 
-    // Verificar límite de trades
-    const totalTrades = stats?.total_trades || 0
-    const isPremium = profile?.is_premium || false
-    
-    if (!isPremium && totalTrades >= 15) {
-      alert('Has alcanzado el límite de 15 trades gratuitos. Actualiza a Premium para continuar registrando trades.')
+    // Verificación de límite de trades
+    if (isTrialExpired) {
+      alert('Has alcanzado el límite de 15 trades gratuitos. Actualiza a Premium para continuar.')
+      return
+    }
+
+    // Validaciones básicas
+    if (!formData.title || !formData.pair || !formData.timeframe || !formData.riskReward || !selectedBias || !selectedResult) {
+      alert('Por favor completa todos los campos obligatorios')
+      return
+    }
+
+    // DEBUG: Log current user state
+    console.log('🔍 DEBUG - Current user state:')
+    console.log('   - user object:', user)
+    console.log('   - user.id:', user?.id)
+    console.log('   - user.email:', user?.email)
+    console.log('   - typeof user.id:', typeof user?.id)
+
+    if (!user) {
+      console.error('❌ No user found in state')
+      alert('Error: No hay usuario autenticado. Por favor recarga la página.')
+      return
+    }
+
+    if (!user.id) {
+      console.error('❌ User ID is null/undefined')
+      alert('Error: ID de usuario no válido. Por favor cierra sesión y vuelve a iniciar.')
       return
     }
 
     try {
       let screenshotUrl = null
 
-      // Subir imagen si hay una seleccionada
+      // Subir imagen si existe
       if (selectedFile) {
         console.log('Subiendo imagen...')
         screenshotUrl = await uploadFile(selectedFile)
         if (!screenshotUrl) {
-          console.error('No se pudo obtener URL de la imagen')
-          return
+          console.log('No se pudo subir la imagen, continuando sin ella...')
         }
-        console.log('Imagen subida con URL:', screenshotUrl)
       }
 
-      // Preparar valores de P&L según el tipo seleccionado
+      // Calcular P&L basado en el tipo seleccionado
       let pnl_percentage = null
       let pnl_pips = null
       let pnl_money = null
 
       if (formData.pnl_type && formData.pnl_value) {
-        const pnlValue = parseFloat(formData.pnl_value)
-        if (!isNaN(pnlValue)) {
-          switch (formData.pnl_type) {
-            case 'percentage':
-              pnl_percentage = pnlValue
-              break
-            case 'pips':
-              pnl_pips = pnlValue
-              break
-            case 'money':
-              pnl_money = pnlValue
-              break
+        const value = parseFloat(formData.pnl_value)
+        if (!isNaN(value)) {
+          if (formData.pnl_type === 'percentage') {
+            pnl_percentage = value
+          } else if (formData.pnl_type === 'pips') {
+            pnl_pips = value
+          } else if (formData.pnl_type === 'money') {
+            pnl_money = value
           }
         }
       }
 
       console.log('Guardando trade en base de datos...')
+      
+      // DEBUG: Log the exact data being sent
+      const tradeData = {
+        user_id: user.id,
+        title: formData.title,
+        pair: formData.pair,
+        timeframe: formData.timeframe,
+        session: formData.session,
+        bias: selectedBias,
+        risk_reward: formData.riskReward,
+        result: selectedResult,
+        feeling: confidence,
+        description: formData.description,
+        confluences: formData.confluences,
+        pnl_percentage: pnl_percentage,
+        pnl_pips: pnl_pips,
+        pnl_money: pnl_money,
+        screenshot_url: screenshotUrl
+      }
+      
+      console.log('🔍 DEBUG - Trade data being inserted:')
+      console.log('   - Complete object:', tradeData)
+      console.log('   - user_id specifically:', tradeData.user_id)
+      console.log('   - user_id type:', typeof tradeData.user_id)
+      
       const { data, error } = await supabase
         .from('trades')
-        .insert({
-          user_id: user.id,
-          title: formData.title,
-          pair: formData.pair,
-          timeframe: formData.timeframe,
-          session: formData.session,
-          bias: selectedBias,
-          risk_reward: formData.riskReward,
-          result: selectedResult,
-          feeling: confidence,
-          description: formData.description,
-          confluences: formData.confluences,
-          pnl_percentage: pnl_percentage,
-          pnl_pips: pnl_pips,
-          pnl_money: pnl_money,
-          screenshot_url: screenshotUrl
-        })
+        .insert(tradeData)
 
       if (error) {
-        console.error('Error al guardar trade:', error)
+        console.error('❌ Database error details:')
+        console.error('   - Error object:', error)
+        console.error('   - Error message:', error.message)
+        console.error('   - Error code:', error.code)
+        console.error('   - Error details:', error.details)
+        console.error('   - Error hint:', error.hint)
         alert(`Error al guardar el trade: ${error.message}`)
       } else {
-        console.log('Trade guardado exitosamente:', data)
+        console.log('✅ Trade guardado exitosamente:', data)
         alert('¡Trade guardado exitosamente!')
         // Reset form
         setFormData({
@@ -309,7 +356,7 @@ export default function Home() {
         await loadUserData(user.id)
       }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('💥 Unexpected error:', err)
       alert('Error inesperado')
     }
   }

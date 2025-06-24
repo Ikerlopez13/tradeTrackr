@@ -85,31 +85,20 @@ export default function ProfilePage() {
   }
 
   const updateAccountBalance = async () => {
-    console.log('🚀 updateAccountBalance called')
-    console.log('📊 Current state:', { 
-      user: user ? { id: user.id, email: user.email } : null, 
-      newBalance,
-      profile: profile ? { id: profile.id, current_balance: profile.account_balance } : null
-    })
-    
     if (!user || !newBalance) {
-      console.log('❌ Missing user or newBalance:', { user: !!user, newBalance })
-      alert('Faltan datos necesarios para actualizar el balance')
+      alert('Por favor ingresa un balance válido')
       return
     }
 
     try {
       const balance = parseFloat(newBalance)
-      console.log('🔢 Parsed balance:', balance, 'from string:', newBalance)
       
-      if (isNaN(balance) || balance <= 0) {
-        console.log('❌ Invalid balance:', balance)
-        alert('Por favor ingresa un balance válido (mayor que 0)')
+      if (isNaN(balance)) {
+        alert('Por favor ingresa un número válido')
         return
       }
 
-      console.log('🔄 Updating balance for user:', user.id, 'to:', balance)
-      console.log('📡 Making Supabase update request...')
+      console.log('🔄 Updating balance to:', balance)
 
       const { data, error } = await supabase
         .from('profiles')
@@ -117,43 +106,23 @@ export default function ProfilePage() {
         .eq('id', user.id)
         .select()
 
-      console.log('📨 Supabase update result:', { data, error })
-
       if (error) {
-        console.error('❌ Supabase error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        })
+        console.error('❌ Error updating balance:', error)
         alert(`Error al actualizar el balance: ${error.message}`)
         return
       }
 
-      if (!data || data.length === 0) {
-        console.log('⚠️ No data returned from update')
-        alert('No se pudo confirmar la actualización del balance')
-        return
-      }
-
-      console.log('✅ Balance updated successfully:', data[0])
-      console.log('💾 Updated account_balance:', data[0].account_balance)
+      console.log('✅ Balance updated successfully')
       
       // Actualizar el estado local inmediatamente
-      const updatedProfile = { ...profile, account_balance: balance }
-      console.log('🔄 Updating local profile state:', updatedProfile)
-      setProfile(updatedProfile)
+      setProfile({ ...profile, account_balance: balance })
       setEditingBalance(false)
       setNewBalance('')
       
-      // Recargar datos del usuario para recalcular estadísticas
-      console.log('🔄 Reloading user data...')
-      await loadUserData(user.id)
-      
-      alert('✅ Balance actualizado exitosamente. Las estadísticas se han recalculado.')
+      alert('✅ Balance actualizado exitosamente')
     } catch (err) {
-      console.error('💥 Unexpected error:', err)
-      alert(`Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`)
+      console.error('💥 Error:', err)
+      alert('Error inesperado al actualizar el balance')
     }
   }
 
@@ -283,42 +252,24 @@ export default function ProfilePage() {
                   <span className="text-gray-400 text-sm">Balance de Cuenta</span>
                 </div>
                 
-                {/* Balance actual calculado automáticamente */}
+                {/* Balance actual - ahora es el mismo que se edita */}
                 <div className="text-center mb-3">
                   <div className="text-2xl font-bold text-green-400 mb-1">
-                    ${(stats?.current_balance || profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${(profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className="text-gray-400 text-xs">Balance Actual</div>
                 </div>
 
-                {/* Mostrar balance inicial y P&L si hay trades */}
-                {stats && stats.total_trades > 0 && (
+                {/* Mostrar P&L si hay trades */}
+                {stats && stats.total_trades > 0 && stats.total_pnl_percentage && (
                   <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Balance Inicial:</span>
-                      <span className="text-gray-300">
-                        ${(profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    {stats.total_pnl_percentage && (
-                      <div className="flex justify-between items-center text-sm mt-1">
-                        <span className="text-gray-400">P&L Total:</span>
-                        <span className={`font-medium ${
-                          stats.total_pnl_percentage > 0 ? 'text-green-400' : 
-                          stats.total_pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
-                        }`}>
-                          {stats.total_pnl_percentage > 0 ? '+' : ''}{stats.total_pnl_percentage.toFixed(2)}%
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-gray-400">Ganancia/Pérdida:</span>
+                      <span className="text-gray-400">P&L Total:</span>
                       <span className={`font-medium ${
-                        (stats?.current_balance || 0) > (profile?.account_balance || 1000) ? 'text-green-400' : 
-                        (stats?.current_balance || 0) < (profile?.account_balance || 1000) ? 'text-red-400' : 'text-gray-400'
+                        stats.total_pnl_percentage > 0 ? 'text-green-400' : 
+                        stats.total_pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
                       }`}>
-                        {((stats?.current_balance || 0) - (profile?.account_balance || 1000)) > 0 ? '+' : ''}
-                        ${((stats?.current_balance || 0) - (profile?.account_balance || 1000)).toFixed(2)}
+                        {stats.total_pnl_percentage > 0 ? '+' : ''}{stats.total_pnl_percentage.toFixed(2)}%
                       </span>
                     </div>
                   </div>
@@ -327,13 +278,13 @@ export default function ProfilePage() {
                 {editingBalance ? (
                   <div className="space-y-3">
                     <div className="text-xs text-gray-400 mb-2">
-                      Cambiar balance inicial (esto recalculará tu balance actual)
+                      Actualizar balance actual
                     </div>
                     <input
                       type="number"
                       value={newBalance}
                       onChange={(e) => setNewBalance(e.target.value)}
-                      placeholder="Ingresa tu balance inicial"
+                      placeholder="Ingresa tu balance actual"
                       step="0.01"
                       className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white text-center"
                     />
@@ -364,7 +315,7 @@ export default function ProfilePage() {
                       }}
                       className="text-blue-400 text-xs hover:text-blue-300 transition-colors"
                     >
-                      Editar balance inicial
+                      Editar balance actual
                     </button>
                   </div>
                 )}
