@@ -12,6 +12,10 @@ export default function Home() {
   const [confidence, setConfidence] = useState(55)
   const [selectedBias, setSelectedBias] = useState('')
   const [selectedResult, setSelectedResult] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [uploadLoading, setUploadLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     timeframe: '',
@@ -61,11 +65,136 @@ export default function Home() {
     })
   }
 
+  // Funciones para manejar drag & drop
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files && files[0]) {
+      handleFileSelection(files[0])
+    }
+  }
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files[0]) {
+      handleFileSelection(files[0])
+    }
+  }
+
+  const handleFileSelection = (file: File) => {
+    // Validar que sea una imagen
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor selecciona solo archivos de imagen')
+      return
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('El archivo es demasiado grande. Máximo 5MB.')
+      return
+    }
+
+    setSelectedFile(file)
+
+    // Crear preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeFile = () => {
+    setSelectedFile(null)
+    setPreviewUrl(null)
+  }
+
+  const uploadFile = async (file: File) => {
+    if (!user) return null
+
+    try {
+      setUploadLoading(true)
+      
+      // Crear nombre único para el archivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`
+
+      console.log('Subiendo archivo:', fileName)
+      console.log('Usuario ID:', user.id)
+
+      // Subir archivo a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('trade-screenshots')
+        .upload(fileName, file)
+
+      if (error) {
+        console.error('Error uploading file:', error)
+        // Solo mostrar error si realmente falló la subida
+        if (!data) {
+          alert(`Error al subir imagen: ${error.message}`)
+          return null
+        }
+        // Si hay data pero también error, probablemente es un warning, no un error crítico
+        console.warn('Warning en subida, pero archivo subido:', data)
+      }
+
+      console.log('Archivo subido exitosamente:', data)
+
+      // Obtener URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('trade-screenshots')
+        .getPublicUrl(fileName)
+
+      console.log('URL pública:', publicUrl)
+      return publicUrl
+    } catch (error) {
+      console.error('Error:', error)
+      alert(`Error inesperado: ${error}`)
+      return null
+    } finally {
+      setUploadLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
 
     try {
+      let screenshotUrl = null
+
+      // Subir imagen si hay una seleccionada
+      if (selectedFile) {
+        console.log('Subiendo imagen...')
+        screenshotUrl = await uploadFile(selectedFile)
+        if (!screenshotUrl) {
+          console.error('No se pudo obtener URL de la imagen')
+          return
+        }
+        console.log('Imagen subida con URL:', screenshotUrl)
+      }
+
+      console.log('Guardando trade en base de datos...')
       const { data, error } = await supabase
         .from('trades')
         .insert({
@@ -78,13 +207,15 @@ export default function Home() {
           risk_reward: formData.riskReward,
           result: selectedResult,
           feeling: confidence,
-          description: formData.description
+          description: formData.description,
+          screenshot_url: screenshotUrl
         })
 
       if (error) {
         console.error('Error al guardar trade:', error)
-        alert('Error al guardar el trade')
+        alert(`Error al guardar el trade: ${error.message}`)
       } else {
+        console.log('Trade guardado exitosamente:', data)
         alert('¡Trade guardado exitosamente!')
         // Reset form
         setFormData({
@@ -98,6 +229,8 @@ export default function Home() {
         setSelectedBias('')
         setSelectedResult('')
         setConfidence(55)
+        setSelectedFile(null)
+        setPreviewUrl(null)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -166,59 +299,125 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{backgroundColor: '#010314'}}>
+    <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
       {/* Navbar */}
-      <nav className="max-w-6xl mx-auto mb-8 flex justify-between items-center">
+      <nav className="max-w-4xl mx-auto pt-6 pb-4 px-6 flex justify-between items-center">
         <div className="flex items-center">
           <Image
             src="/logo.jpeg"
             alt="TradeTrackr Logo"
-            width={50}
-            height={50}
+            width={40}
+            height={40}
             priority
             unoptimized
             className="rounded-lg mr-3"
           />
-          <h1 className="text-2xl font-bold text-white">TradeTrackr</h1>
+          <h1 className="text-xl font-bold text-white">TradeTrackr</h1>
         </div>
-        <div className="flex items-center space-x-4">
-          <span className="text-gray-400">Hola, {user.email}</span>
+        <div className="flex items-center space-x-3">
+          <span className="text-gray-400 text-sm">{user.email}</span>
           <Link
-            href="/dashboard"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            href="/trades"
+            className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
-            Dashboard
+            Mis Trades
+          </Link>
+          <Link
+            href="/profile"
+            className="bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+          >
+            Perfil
           </Link>
           <button
             onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors text-sm"
           >
             Cerrar Sesión
           </button>
         </div>
       </nav>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-md mx-auto px-6 pb-8">
         {/* Título principal */}
-        <h1 className="text-4xl font-bold text-white text-center mb-12">
+        <h1 className="text-2xl font-bold text-white text-center mb-8">
           Registrar nuevo trade
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Área de screenshot */}
-          <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center bg-black/20 backdrop-blur-sm">
-            <div className="text-6xl mb-4">📸</div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Arrastra aquí la captura de pantalla de tu operación
-            </h3>
-            <p className="text-gray-400">
-              o haz click para seleccionar desde tu galería
-            </p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Área de screenshot mejorada */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center bg-black/20 backdrop-blur-sm transition-all duration-300 cursor-pointer relative ${
+              isDragging 
+                ? 'border-blue-500 bg-blue-500/10 scale-105' 
+                : selectedFile 
+                  ? 'border-green-500 bg-green-500/10' 
+                  : 'border-gray-600 hover:border-gray-500'
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('file-input')?.click()}
+          >
+            <input
+              id="file-input"
+              type="file"
+              accept="image/*"
+              onChange={handleFileInput}
+              className="hidden"
+            />
+            
+            {previewUrl ? (
+              <div className="relative">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-w-full max-h-48 mx-auto rounded-lg shadow-lg"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeFile()
+                  }}
+                  className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-700 transition-colors"
+                >
+                  ×
+                </button>
+                <div className="mt-3 text-sm text-gray-300">
+                  {selectedFile?.name}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className={`text-4xl mb-3 transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
+                  {isDragging ? '📥' : '📸'}
+                </div>
+                <h3 className="text-base font-medium text-white mb-1">
+                  {isDragging 
+                    ? '¡Suelta la imagen aquí!' 
+                    : 'Arrastra aquí la captura de pantalla de tu operación'
+                  }
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  o haz click para seleccionar desde tu galería
+                </p>
+                <p className="text-gray-500 text-xs mt-2">
+                  Formatos: JPG, PNG, GIF • Máximo 5MB
+                </p>
+              </div>
+            )}
+            
+            {uploadLoading && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                <div className="text-white text-sm">Subiendo imagen...</div>
+              </div>
+            )}
           </div>
 
           {/* Título del trade */}
           <div>
-            <label className="block text-white font-semibold mb-3 text-lg">
+            <label className="block text-white font-medium mb-2 text-base">
               Título del trade
             </label>
             <input
@@ -227,15 +426,15 @@ export default function Home() {
               value={formData.title}
               onChange={handleInputChange}
               placeholder="Ej: Setup EUR/USD en zona de oferta"
-              className="w-full p-4 bg-gray-800/60 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-base"
+              className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
               required
             />
           </div>
 
           {/* Fila de campos: Temporalidad y Par */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-white font-semibold mb-3 text-lg">
+              <label className="block text-white font-medium mb-2 text-base">
                 Temporalidad
               </label>
               <div className="relative">
@@ -243,7 +442,7 @@ export default function Home() {
                   name="timeframe"
                   value={formData.timeframe}
                   onChange={handleInputChange}
-                  className="w-full p-4 bg-gray-800/60 border border-gray-600 rounded-xl text-white focus:border-blue-500 focus:outline-none appearance-none text-base pr-12"
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
                   required
                 >
                   <option value="" className="text-gray-400">Selecciona timeframe</option>
@@ -255,8 +454,8 @@ export default function Home() {
                   <option value="4h">4 horas</option>
                   <option value="1d">1 día</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -264,7 +463,7 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-white font-semibold mb-3 text-lg">
+              <label className="block text-white font-medium mb-2 text-base">
                 Par
               </label>
               <div className="relative">
@@ -272,7 +471,7 @@ export default function Home() {
                   name="pair"
                   value={formData.pair}
                   onChange={handleInputChange}
-                  className="w-full p-4 bg-gray-800/60 border border-gray-600 rounded-xl text-white focus:border-blue-500 focus:outline-none appearance-none text-base pr-12"
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
                   required
                 >
                   <option value="" className="text-gray-400">Selecciona par</option>
@@ -284,8 +483,8 @@ export default function Home() {
                   <option value="USDCHF">USD/CHF</option>
                   <option value="NZDUSD">NZD/USD</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -294,9 +493,9 @@ export default function Home() {
           </div>
 
           {/* Fila de campos: Sesión y Risk:Reward */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-white font-semibold mb-3 text-lg">
+              <label className="block text-white font-medium mb-2 text-base">
                 Sesión
               </label>
               <div className="relative">
@@ -304,7 +503,7 @@ export default function Home() {
                   name="session"
                   value={formData.session}
                   onChange={handleInputChange}
-                  className="w-full p-4 bg-gray-800/60 border border-gray-600 rounded-xl text-white focus:border-blue-500 focus:outline-none appearance-none text-base pr-12"
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
                 >
                   <option value="" className="text-gray-400">Selecciona sesión</option>
                   <option value="asian">Asiática</option>
@@ -312,8 +511,8 @@ export default function Home() {
                   <option value="newyork">Nueva York</option>
                   <option value="overlap">Solapamiento</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -321,7 +520,7 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-white font-semibold mb-3 text-lg">
+              <label className="block text-white font-medium mb-2 text-base">
                 Risk:Reward
               </label>
               <div className="relative">
@@ -329,7 +528,7 @@ export default function Home() {
                   name="riskReward"
                   value={formData.riskReward}
                   onChange={handleInputChange}
-                  className="w-full p-4 bg-gray-800/60 border border-gray-600 rounded-xl text-white focus:border-blue-500 focus:outline-none appearance-none text-base pr-12"
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
                   required
                 >
                   <option value="" className="text-gray-400">1:2</option>
@@ -339,8 +538,8 @@ export default function Home() {
                   <option value="1:4">1:4</option>
                   <option value="1:5">1:5</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -350,16 +549,16 @@ export default function Home() {
 
           {/* Bias del mercado */}
           <div>
-            <label className="block text-white font-semibold mb-4 text-lg">
+            <label className="block text-white font-medium mb-3 text-base">
               Bias del mercado
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedBias('alcista')}
-                className={`p-4 rounded-xl font-semibold text-base transition-all ${
+                className={`p-3 rounded-lg font-medium text-sm transition-all ${
                   selectedBias === 'alcista'
-                    ? 'bg-green-600 text-white border-2 border-green-500'
+                    ? 'bg-green-600 text-white border border-green-500'
                     : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
                 }`}
               >
@@ -368,9 +567,9 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setSelectedBias('bajista')}
-                className={`p-4 rounded-xl font-semibold text-base transition-all ${
+                className={`p-3 rounded-lg font-medium text-sm transition-all ${
                   selectedBias === 'bajista'
-                    ? 'bg-red-600 text-white border-2 border-red-500'
+                    ? 'bg-red-600 text-white border border-red-500'
                     : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
                 }`}
               >
@@ -381,16 +580,16 @@ export default function Home() {
 
           {/* Resultado */}
           <div>
-            <label className="block text-white font-semibold mb-4 text-lg">
+            <label className="block text-white font-medium mb-3 text-base">
               Resultado
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setSelectedResult('win')}
-                className={`p-4 rounded-xl font-semibold text-base transition-all ${
+                className={`p-3 rounded-lg font-medium text-sm transition-all ${
                   selectedResult === 'win'
-                    ? 'bg-green-600 text-white border-2 border-green-500'
+                    ? 'bg-green-600 text-white border border-green-500'
                     : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
                 }`}
               >
@@ -399,9 +598,9 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setSelectedResult('loss')}
-                className={`p-4 rounded-xl font-semibold text-base transition-all ${
+                className={`p-3 rounded-lg font-medium text-sm transition-all ${
                   selectedResult === 'loss'
-                    ? 'bg-red-600 text-white border-2 border-red-500'
+                    ? 'bg-red-600 text-white border border-red-500'
                     : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
                 }`}
               >
@@ -410,9 +609,9 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setSelectedResult('be')}
-                className={`p-4 rounded-xl font-semibold text-base transition-all ${
+                className={`p-3 rounded-lg font-medium text-sm transition-all ${
                   selectedResult === 'be'
-                    ? 'bg-yellow-600 text-white border-2 border-yellow-500'
+                    ? 'bg-yellow-600 text-white border border-yellow-500'
                     : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
                 }`}
               >
@@ -423,7 +622,7 @@ export default function Home() {
 
           {/* Descripción del trade */}
           <div>
-            <label className="block text-white font-semibold mb-3 text-lg">
+            <label className="block text-white font-medium mb-2 text-base">
               Descripción del trade
             </label>
             <textarea
@@ -431,75 +630,75 @@ export default function Home() {
               value={formData.description}
               onChange={handleInputChange}
               placeholder="Describe tu análisis, setup y gestión del trade..."
-              rows={6}
-              className="w-full p-4 bg-gray-800/60 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none text-base"
+              rows={4}
+              className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none text-sm"
             />
           </div>
 
           {/* Slider de confianza */}
           <div>
-            <label className="block text-white font-semibold mb-4 text-lg">
+            <label className="block text-white font-medium mb-3 text-base">
               ¿Cómo te sentiste con el trade?
             </label>
-            <div className="text-center mb-6">
-              <span className="text-2xl font-bold text-white">{confidence}%</span>
+            <div className="text-center mb-4">
+              <div className="flex items-center justify-center space-x-2">
+                <span className="text-xl font-bold text-white">{confidence}%</span>
+                <span className="text-xl">{getConfidenceEmoji(confidence)}</span>
+              </div>
             </div>
             
-            <div className="relative mb-6">
-              {/* Slider con fondo de gradiente personalizado */}
-              <div className="relative">
-                {/* Fondo del gradiente */}
-                <div className="confidence-slider-background"></div>
-                
-                {/* Slider transparente encima */}
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={confidence}
-                  onChange={(e) => setConfidence(Number(e.target.value))}
-                  className="confidence-slider w-full absolute top-0 left-0"
-                />
-                
-                {/* Emoji posicionado sobre el thumb */}
-                <div 
-                  className="absolute top-1/2 transform -translate-y-1/2 pointer-events-none text-lg z-20"
-                  style={{
-                    left: `calc(${confidence}% - 20px)`,
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {getConfidenceEmoji(confidence)}
-                </div>
+            <div className="confidence-slider-container">
+              {/* Fondo con secciones de colores */}
+              <div 
+                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 rounded-full overflow-hidden"
+                style={{ 
+                  height: '8px', 
+                  zIndex: 1,
+                  boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)'
+                }}
+              >
+                {/* Sección roja (0-33%) */}
+                <div className="absolute top-0 left-0 h-full bg-red-600" style={{ width: '33%' }}></div>
+                {/* Sección amarilla (33-66%) */}
+                <div className="absolute top-0 h-full bg-yellow-500" style={{ left: '33%', width: '33%' }}></div>
+                {/* Sección verde (66-100%) */}
+                <div className="absolute top-0 h-full bg-green-500" style={{ left: '66%', width: '34%' }}></div>
               </div>
               
-              {/* Labels debajo del slider */}
-              <div className="flex justify-between items-center mt-6">
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl mb-1">😞</span>
-                  <span className="text-red-400 font-semibold text-sm">Mal</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl mb-1">🤔</span>
-                  <span className="text-yellow-400 font-semibold text-sm">Regular</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl mb-1">😊</span>
-                  <span className="text-green-400 font-semibold text-sm">Genial</span>
-                </div>
+              {/* Slider */}
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={confidence}
+                onChange={(e) => setConfidence(Number(e.target.value))}
+                className="confidence-slider"
+                style={{ zIndex: 5 }}
+              />
+            </div>
+            
+            {/* Labels debajo del slider */}
+            <div className="flex justify-between items-center mt-2">
+              <div className="flex flex-col items-center">
+                <span className="text-base mb-0.5">😞</span>
+                <span className="text-red-400 font-medium text-xs">Mal</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-base mb-0.5">🤔</span>
+                <span className="text-yellow-400 font-medium text-xs">Regular</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-base mb-0.5">😊</span>
+                <span className="text-green-400 font-medium text-xs">Genial</span>
               </div>
             </div>
           </div>
 
           {/* Botón de guardar */}
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               type="submit"
-              className="w-full bg-white text-black font-bold py-4 px-8 rounded-xl hover:bg-gray-100 transition-colors text-lg shadow-lg"
+              className="w-full bg-white text-black font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors text-base shadow-lg"
             >
               Guardar Trade
             </button>
@@ -508,4 +707,4 @@ export default function Home() {
       </div>
     </div>
   )
-} 
+}

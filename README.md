@@ -1,139 +1,230 @@
-# TradeTracker - Aplicación de Trading Journal
+# TradeTrackr - Trading Journal App
 
-Una aplicación moderna para registrar y analizar tus trades de trading, construida con Next.js 15, TypeScript, Supabase y Tailwind CSS.
+Una aplicación completa de diario de trading construida con Next.js 15, TypeScript, Supabase y Tailwind CSS.
+
+![TradeTrackr Logo](public/logo.jpeg)
 
 ## 🚀 Características
 
-- ✅ Autenticación completa (email/password y OAuth con Google)
-- ✅ Registro de trades con formulario intuitivo
-- ✅ Dashboard con estadísticas de rendimiento
-- ✅ Diseño espacial moderno con tema oscuro
-- ✅ Interfaz en español
-- ✅ Base de datos segura con Row Level Security
-- ✅ Responsive design
+### ✅ Páginas Implementadas
+- **🏠 Página Principal**: Formulario completo de registro de trades con slider de confianza
+- **📊 Dashboard**: Vista completa con estadísticas, gráficos de rendimiento y trades recientes
+- **👤 Perfil**: Sistema de referidos, progreso PRO y configuración de cuenta
+- **🔐 Autenticación**: Login y registro con validación completa
+- **📱 Diseño Móvil**: Optimizado para dispositivos móviles con el mismo ancho en todas las páginas
 
-## 🛠️ Configuración
+### 🎯 Funcionalidades Principales
+- **Registro de Trades**: Título, par, temporalidad, sesión, bias, risk:reward, resultado
+- **Slider de Confianza**: Gradiente de colores (rojo-amarillo-verde) con emojis
+- **Subida de Screenshots**: Área drag & drop para capturas de pantalla
+- **Estadísticas en Tiempo Real**: Win rate, profit factor, expectancy automáticos
+- **Rendimiento Mensual**: Tracking de rendimiento por meses
+- **Sistema de Referidos**: Códigos únicos y recompensas
+- **Accuracy Grid**: Visualización tipo GitHub de actividad de trading
 
-### 1. Configurar Supabase
+## 🛠️ Stack Tecnológico
 
-1. Ve a [supabase.com](https://supabase.com) y crea una nueva cuenta
-2. Crea un nuevo proyecto
-3. Ve a **SQL Editor** en el dashboard de Supabase
-4. Ejecuta el contenido del archivo `supabase-schema.sql` para crear las tablas y configuraciones
+- **Frontend**: Next.js 15.3.4, React 19, TypeScript
+- **Styling**: Tailwind CSS v3 (optimizado para móvil)
+- **Base de Datos**: Supabase (PostgreSQL)
+- **Autenticación**: Supabase Auth
+- **Deployment**: Vercel-ready
 
-### 2. Configurar Variables de Entorno
+## 📦 Instalación
 
-Crea un archivo `.env.local` en la raíz del proyecto con:
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_de_supabase
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/Ikerlopez13/tradeTrackr.git
+cd tradeTrackr
 ```
 
-**Para obtener estas credenciales:**
-1. Ve a tu proyecto en Supabase
-2. Ve a **Settings** → **API**
-3. Copia la **Project URL** y la **anon public key**
-
-### 3. Configurar Autenticación OAuth (Opcional)
-
-Para habilitar login con Google:
-
-1. Ve a **Authentication** → **Providers** en Supabase
-2. Habilita **Google**
-3. Configura tu **Google OAuth Client ID** y **Client Secret**
-4. Añade tu dominio a las **Redirect URLs**
-
-### 4. Instalar Dependencias y Ejecutar
-
+### 2. Instalar dependencias
 ```bash
 npm install
+```
+
+### 3. Configurar Supabase
+
+#### Crear proyecto en Supabase
+1. Ve a [supabase.com](https://supabase.com)
+2. Crea un nuevo proyecto
+3. Copia la URL y la clave anon
+
+#### Configurar variables de entorno
+Crea un archivo `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+```
+
+#### Ejecutar las queries SQL
+1. Ve al SQL Editor en tu dashboard de Supabase
+2. Copia y ejecuta todo el contenido de `supabase_setup.sql`
+3. Esto creará todas las tablas, políticas RLS, triggers y funciones necesarias
+
+### 4. Ejecutar en desarrollo
+```bash
 npm run dev
 ```
+
+La aplicación estará disponible en `http://localhost:3000`
 
 ## 📁 Estructura del Proyecto
 
 ```
-src/
-├── app/
-│   ├── login/page.tsx          # Página de inicio de sesión
-│   ├── signup/page.tsx         # Página de registro
-│   ├── dashboard/page.tsx      # Dashboard con estadísticas
-│   ├── page.tsx               # Formulario de registro de trades
-│   ├── layout.tsx            # Layout principal
-│   └── globals.css           # Estilos globales
-├── lib/
-│   └── supabase/
-│       ├── client.ts         # Cliente de Supabase (browser)
-│       └── server.ts         # Cliente de Supabase (server)
-├── types/
-│   └── database.ts           # Tipos de TypeScript para la DB
-└── middleware.ts             # Middleware de autenticación
+tradetrackrapp/
+├── src/
+│   ├── app/
+│   │   ├── dashboard/
+│   │   │   └── page.tsx          # Dashboard completo
+│   │   ├── login/
+│   │   │   └── page.tsx          # Página de login
+│   │   ├── signup/
+│   │   │   └── page.tsx          # Página de registro
+│   │   ├── profile/
+│   │   │   └── page.tsx          # Página de perfil
+│   │   ├── globals.css           # Estilos globales + slider
+│   │   ├── layout.tsx            # Layout principal
+│   │   └── page.tsx              # Página principal (registro de trades)
+│   ├── lib/
+│   │   └── supabase/
+│   │       ├── client.ts         # Cliente Supabase
+│   │       └── server.ts         # Servidor Supabase
+│   └── types/
+│       └── database.ts           # Tipos TypeScript
+├── public/
+│   └── logo.jpeg                 # Logo de la aplicación
+├── supabase_setup.sql            # Queries SQL para configuración
+└── README.md                     # Este archivo
 ```
 
-## 🗄️ Esquema de Base de Datos
+## 🎨 Diseño y UX
 
-### Tablas principales:
+### Tema Visual
+- **Color de fondo**: `#010314` (azul muy oscuro espacial)
+- **Estilo**: Glass-morphism con efectos de desenfoque
+- **Logo**: Animación de respiración (escala 1 → 1.2 → 1)
+- **Responsive**: Optimizado mobile-first
 
-- **profiles**: Perfiles de usuario
-- **trades**: Registro de trades
+### Componentes Destacados
+
+#### Slider de Confianza
+- Gradiente de 3 colores: rojo (0-33%), amarillo (33-66%), verde (66-100%)
+- Emojis dinámicos: 😞 Mal, 🤔 Regular, 😊 Genial
+- Porcentaje en tiempo real
+- Compatible con todos los navegadores
+
+#### Cards de Estadísticas
+- Profit Factor, Expectancy, Win Rate
+- Datos calculados automáticamente
+- Actualizaciones en tiempo real
+
+#### Lista de Trades
+- Diseño tipo tarjeta con toda la información
+- Badges de resultado coloreados
+- Descripción truncada con line-clamp
+
+## 🗄️ Base de Datos
+
+### Tablas Principales
+- **profiles**: Perfiles de usuario con códigos de referido
+- **trades**: Todos los trades registrados
 - **user_stats**: Estadísticas calculadas automáticamente
+- **monthly_performance**: Rendimiento mensual
+- **referrals**: Sistema de referidos
 
-### Características de seguridad:
-- Row Level Security habilitado
-- Políticas de acceso por usuario
-- Triggers automáticos para actualizar estadísticas
-
-## 🎨 Diseño
-
-- **Tema**: Espacial oscuro con gradientes
-- **Colores**: Negros, grises y acentos azules/verdes/rojos
-- **Efectos**: Glass-morphism y backdrop blur
-- **Responsive**: Optimizado para desktop y móvil
-
-## 📊 Funcionalidades del Trading Journal
-
-### Registro de Trades:
-- Título personalizado
-- Par de divisas
-- Timeframe
-- Sesión de trading
-- Bias del mercado (Alcista/Bajista)
-- Risk:Reward ratio
-- Resultado (Win/Loss/BE)
-- Nivel de confianza con slider
-- Descripción detallada
-- Upload de screenshots (próximamente)
-
-### Dashboard:
-- Total de trades
-- Trades ganadores/perdedores
-- Win rate calculado automáticamente
-- Lista de trades recientes
-- Estadísticas visuales
-
-## 🔧 Tecnologías Utilizadas
-
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS
-- **Backend**: Supabase (PostgreSQL)
-- **Autenticación**: Supabase Auth
-- **Deployment**: Vercel (recomendado)
+### Características de la DB
+- **RLS (Row Level Security)**: Cada usuario solo ve sus datos
+- **Triggers automáticos**: Estadísticas se actualizan automáticamente
+- **Índices optimizados**: Para consultas rápidas
+- **Validaciones**: Constraints en campos críticos
 
 ## 🚀 Deployment
 
-### Vercel (Recomendado):
-
-1. Conecta tu repositorio de GitHub con Vercel
+### Vercel (Recomendado)
+1. Conecta tu repositorio de GitHub
 2. Configura las variables de entorno en Vercel
 3. Deploy automático
 
-### Variables de entorno en producción:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+### Variables de entorno para producción
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+```
 
-## 🤝 Contribuir
+## 📱 Funcionalidades por Página
+
+### Página Principal (`/`)
+- ✅ Formulario completo de registro de trades
+- ✅ Slider de confianza con gradiente
+- ✅ Área de subida de screenshots
+- ✅ Validación de campos
+- ✅ Guardado en Supabase
+
+### Dashboard (`/dashboard`)
+- ✅ Cards de estadísticas principales
+- ✅ Rendimiento mensual (últimos 6 meses)
+- ✅ Lista de trades recientes
+- ✅ Gráfico de performance con métricas
+- ✅ Accuracy Grid (estilo GitHub)
+
+### Perfil (`/profile`)
+- ✅ Avatar con iniciales del usuario
+- ✅ Sistema de referidos con código único
+- ✅ Contador de referidos y recompensas
+- ✅ Barra de progreso PRO
+- ✅ Enlaces de navegación
+
+### Autenticación (`/login`, `/signup`)
+- ✅ Formularios limpios y validados
+- ✅ Manejo de errores
+- ✅ Redirección automática
+- ✅ Confirmación por email
+
+## 🔧 Personalización
+
+### Cambiar colores del tema
+Edita `src/app/globals.css`:
+```css
+/* Cambiar color de fondo */
+background-color: #010314; /* Tu color aquí */
+
+/* Cambiar colores del slider */
+.bg-red-600 { background-color: tu-color; }
+.bg-yellow-500 { background-color: tu-color; }
+.bg-green-500 { background-color: tu-color; }
+```
+
+### Agregar nuevos campos al formulario
+1. Actualiza la interfaz en `src/types/database.ts`
+2. Modifica el formulario en `src/app/page.tsx`
+3. Actualiza la tabla `trades` en Supabase
+
+## 🐛 Solución de Problemas
+
+### Error de Tailwind CSS
+- Asegúrate de usar Tailwind CSS v3, no v4
+- Verifica que `postcss.config.js` esté configurado correctamente
+
+### Problemas de autenticación
+- Verifica las variables de entorno
+- Asegúrate de que las políticas RLS estén configuradas
+- Revisa que las tablas existan en Supabase
+
+### Slider no se muestra correctamente
+- Verifica que los estilos CSS estén cargados
+- Asegúrate de que el gradiente esté configurado con z-index correcto
+
+## 📈 Próximas Funcionalidades
+
+- [ ] Subida real de screenshots
+- [ ] Gráficos interactivos con Chart.js
+- [ ] Exportación de datos a CSV/PDF
+- [ ] Notificaciones push
+- [ ] Modo oscuro/claro
+- [ ] Integración con APIs de trading
+
+## 🤝 Contribución
 
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
@@ -141,20 +232,14 @@ src/
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📝 Próximas Funcionalidades
-
-- [ ] Upload de screenshots
-- [ ] Gráficos de rendimiento
-- [ ] Análisis por pares de divisas
-- [ ] Exportar datos a CSV
-- [ ] Modo claro/oscuro
-- [ ] Notificaciones push
-- [ ] Integración con APIs de trading
-
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ve el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+
+## 👨‍💻 Autor
+
+**Iker López** - [GitHub](https://github.com/Ikerlopez13)
 
 ---
 
-**¡Happy Trading! 📈** 
+⭐ ¡Dale una estrella si este proyecto te ayudó! 
