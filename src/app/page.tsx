@@ -382,7 +382,7 @@ export default function Home() {
   return (
     <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
       {/* Header móvil (solo en pantallas pequeñas) */}
-      <header className="md:hidden sticky top-0 z-50 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+      <header className="md:hidden sticky top-0 z-50 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
         <div className="flex items-center justify-center py-4 px-6">
           <Image
             src="/logo.jpeg"
@@ -398,7 +398,7 @@ export default function Home() {
       </header>
 
       {/* Navbar desktop (solo en pantallas grandes) */}
-      <nav className="hidden md:flex items-center justify-between px-8 py-4 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+      <nav className="hidden md:flex items-center justify-between px-8 py-4 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
         <div className="flex items-center">
           <Image
             src="/logo.jpeg"
@@ -696,7 +696,7 @@ export default function Home() {
                     required
                     disabled={isTrialExpired}
                   >
-                    <option value="" className="text-gray-400">1:2</option>
+                    <option value="" className="text-gray-400">Selecciona ratio</option>
                     <option value="1:1">1:1</option>
                     <option value="1:2">1:2</option>
                     <option value="1:3">1:3</option>
@@ -860,7 +860,7 @@ export default function Home() {
                     value={formData.pnl_value}
                     onChange={handleInputChange}
                     placeholder={
-                      formData.pnl_type === 'percentage' ? 'Ej: +2.5 o -1.8' :
+                      formData.pnl_type === 'percentage' ? 'Ej: +2,5 o -1,8' :
                       formData.pnl_type === 'pips' ? 'Ej: +50 o -25' :
                       'Ej: +150 o -75'
                     }
@@ -869,7 +869,7 @@ export default function Home() {
                     disabled={isTrialExpired}
                   />
                   <div className="text-gray-400 text-xs mt-1">
-                    {formData.pnl_type === 'percentage' && 'Ingresa el porcentaje de ganancia/pérdida (ej: 2.5 para +2.5%)'}
+                    {formData.pnl_type === 'percentage' && 'Ingresa el porcentaje de ganancia/pérdida (ej: 2,5 para +2,5%)'}
                     {formData.pnl_type === 'pips' && 'Ingresa los pips ganados/perdidos (ej: 50 para +50 pips)'}
                     {formData.pnl_type === 'money' && 'Ingresa la cantidad en dinero ganada/perdida (ej: 150 para +$150)'}
                   </div>
@@ -956,7 +956,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Navigation Menu - Solo móvil */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-sm border-t border-gray-800 z-50" style={{backgroundColor: '#010314'}}>
         <div className="flex justify-around items-center py-2">
           {/* Nuevo Trade - Página actual */}
           <Link

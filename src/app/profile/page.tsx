@@ -123,7 +123,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
       {/* Header móvil (solo en pantallas pequeñas) */}
-      <header className="md:hidden sticky top-0 z-50 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+      <header className="md:hidden sticky top-0 z-50 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
         <div className="flex items-center justify-center py-4 px-6">
           <Image
             src="/logo.jpeg"
@@ -139,7 +139,7 @@ export default function ProfilePage() {
       </header>
 
       {/* Navbar desktop (solo en pantallas grandes) */}
-      <nav className="hidden md:flex items-center justify-between px-8 py-4 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+      <nav className="hidden md:flex items-center justify-between px-8 py-4 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
         <div className="flex items-center">
           <Image
             src="/logo.jpeg"
@@ -466,7 +466,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Bottom Navigation Menu - Solo móvil */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-sm border-t border-gray-800 z-50" style={{backgroundColor: '#010314'}}>
         <div className="flex justify-around items-center py-2">
           {/* Nuevo Trade */}
           <Link

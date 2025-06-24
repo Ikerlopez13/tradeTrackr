@@ -29,6 +29,8 @@ export default function TradesPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [trades, setTrades] = useState<Trade[]>([])
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
+  const [showModal, setShowModal] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
@@ -72,6 +74,16 @@ export default function TradesPage() {
     router.push('/login')
   }
 
+  const openTradeModal = (trade: Trade) => {
+    setSelectedTrade(trade)
+    setShowModal(true)
+  }
+
+  const closeModal = () => {
+    setShowModal(false)
+    setSelectedTrade(null)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
@@ -95,7 +107,7 @@ export default function TradesPage() {
   return (
     <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
       {/* Header móvil (solo en pantallas pequeñas) */}
-      <header className="md:hidden sticky top-0 z-50 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+      <header className="md:hidden sticky top-0 z-50 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
         <div className="flex items-center justify-center py-4 px-6">
           <Image
             src="/logo.jpeg"
@@ -111,7 +123,7 @@ export default function TradesPage() {
       </header>
 
       {/* Navbar desktop (solo en pantallas grandes) */}
-      <nav className="hidden md:flex items-center justify-between px-8 py-4 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+      <nav className="hidden md:flex items-center justify-between px-8 py-4 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
         <div className="flex items-center">
           <Image
             src="/logo.jpeg"
@@ -155,153 +167,105 @@ export default function TradesPage() {
 
       {/* Contenido principal */}
       <div className="pb-20 md:pb-8">
-        <div className="max-w-4xl mx-auto px-6 py-6">
+        <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Título principal */}
           <h1 className="text-xl md:text-2xl font-bold text-white text-center mb-6">
             Mis Trades
           </h1>
 
-          {/* Lista de trades */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Lista de trades - DISEÑO VERTICAL */}
+          <div className="space-y-4">
             {trades && trades.length > 0 ? (
               trades.map((trade) => (
-                <div key={trade.id} className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
-                  {/* Imagen del trade */}
-                  {trade.screenshot_url && (
-                    <div className="mb-3">
-                      <img
-                        src={trade.screenshot_url}
-                        alt={`Screenshot de ${trade.title}`}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Información del trade */}
-                  <div className="space-y-2">
-                    <h3 className="text-white font-semibold text-lg">{trade.title}</h3>
+                <div 
+                  key={trade.id} 
+                  onClick={() => openTradeModal(trade)}
+                  className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-700 cursor-pointer hover:bg-gray-800/80 transition-all duration-200 hover:border-gray-600"
+                >
+                  <div className="flex items-center space-x-4">
+                    {/* Imagen del trade - Más pequeña como preview */}
+                    {trade.screenshot_url && (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={trade.screenshot_url}
+                          alt={`Screenshot de ${trade.title}`}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
                     
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-gray-300 text-sm">{trade.pair}</span>
-                        <span className="text-gray-500">•</span>
-                        <span className="text-gray-300 text-sm">{trade.timeframe}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          trade.bias === 'alcista' 
-                            ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
-                            : 'bg-red-600/20 text-red-400 border border-red-600/30'
-                        }`}>
-                          {trade.bias === 'alcista' ? 'Alcista' : 'Bajista'}
-                        </span>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          trade.result === 'win' 
-                            ? 'bg-green-600/20 text-green-400 border border-green-600/30'
-                            : trade.result === 'loss'
-                              ? 'bg-red-600/20 text-red-400 border border-red-600/30'
-                              : 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/30'
-                        }`}>
-                          {trade.result === 'win' ? 'Win' : trade.result === 'loss' ? 'Loss' : 'BE'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {trade.session && (
-                      <div className="text-gray-400 text-sm">
-                        Sesión: {trade.session === 'asian' ? 'Asiática' : 
-                                trade.session === 'london' ? 'Londres' : 
-                                trade.session === 'newyork' ? 'Nueva York' : 
-                                'Solapamiento'}
-                      </div>
-                    )}
-
-                    {trade.risk_reward && (
-                      <div className="text-gray-400 text-sm">
-                        Risk:Reward: {trade.risk_reward}
-                      </div>
-                    )}
-
-                    {trade.feeling && (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-gray-400 text-sm">Sentimiento:</span>
-                        <span className="text-white font-medium">{trade.feeling}%</span>
-                        <span className="text-lg">
-                          {trade.feeling <= 30 ? '😞' : 
-                           trade.feeling <= 70 ? '🤔' : '😊'}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* P&L Information - Mejorado para mostrar cualquier tipo */}
-                    {(trade.pnl_percentage || trade.pnl_pips || trade.pnl_money) && (
-                      <div className="bg-gray-900/50 rounded-lg p-3 mt-3">
-                        <div className="text-gray-400 text-xs mb-2">Resultado Financiero</div>
-                        <div className="flex justify-center">
-                          <div className="text-center">
-                            {trade.pnl_percentage && (
-                              <div className={`text-lg font-bold ${
-                                trade.pnl_percentage > 0 ? 'text-green-400' : 
-                                trade.pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
-                              }`}>
-                                {trade.pnl_percentage > 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%
-                              </div>
-                            )}
-                            {trade.pnl_pips && (
-                              <div className={`text-lg font-bold ${
-                                trade.pnl_pips > 0 ? 'text-green-400' : 
-                                trade.pnl_pips < 0 ? 'text-red-400' : 'text-gray-400'
-                              }`}>
-                                {trade.pnl_pips > 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)} pips
-                              </div>
-                            )}
-                            {trade.pnl_money && (
-                              <div className={`text-lg font-bold ${
-                                trade.pnl_money > 0 ? 'text-green-400' : 
-                                trade.pnl_money < 0 ? 'text-red-400' : 'text-gray-400'
-                              }`}>
-                                {trade.pnl_money > 0 ? '+' : ''}${trade.pnl_money.toFixed(2)}
-                              </div>
-                            )}
-                            <div className="text-gray-500 text-xs">
-                              {trade.pnl_percentage ? 'Porcentaje' : 
-                               trade.pnl_pips ? 'Pips' : 
-                               'Dinero'}
-                            </div>
-                          </div>
+                    {/* Información principal */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-white font-semibold text-lg truncate">{trade.title}</h3>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            trade.result === 'win' 
+                              ? 'bg-green-600/20 text-green-400'
+                              : trade.result === 'loss'
+                                ? 'bg-red-600/20 text-red-400'
+                                : 'bg-yellow-600/20 text-yellow-400'
+                          }`}>
+                            {trade.result === 'win' ? 'Win' : trade.result === 'loss' ? 'Loss' : 'BE'}
+                          </span>
                         </div>
                       </div>
-                    )}
-
-                    {/* Confluences */}
-                    {trade.confluences && (
-                      <div className="text-gray-300 text-sm mt-3 p-3 bg-gray-900/50 rounded-lg">
-                        <div className="text-gray-400 text-xs mb-1">Confluencias:</div>
-                        {trade.confluences}
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 text-sm text-gray-300">
+                          <span>{trade.pair}</span>
+                          <span className="text-gray-500">•</span>
+                          <span>{trade.timeframe}</span>
+                        </div>
+                        
+                        {/* P&L destacado */}
+                        {(trade.pnl_percentage || trade.pnl_pips || trade.pnl_money) && (
+                          <div className={`text-sm font-semibold ${
+                            (trade.pnl_percentage || trade.pnl_pips || trade.pnl_money || 0) > 0 ? 'text-green-400' : 
+                            (trade.pnl_percentage || trade.pnl_pips || trade.pnl_money || 0) < 0 ? 'text-red-400' : 'text-gray-400'
+                          }`}>
+                            {trade.pnl_percentage && (
+                              <span>{trade.pnl_percentage > 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%</span>
+                            )}
+                            {trade.pnl_pips && !trade.pnl_percentage && (
+                              <span>{trade.pnl_pips > 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)} pips</span>
+                            )}
+                            {trade.pnl_money && !trade.pnl_percentage && !trade.pnl_pips && (
+                              <span>{trade.pnl_money > 0 ? '+' : ''}${trade.pnl_money.toFixed(2)}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-
-                    {trade.description && (
-                      <div className="text-gray-300 text-sm mt-3 p-3 bg-gray-900/50 rounded-lg">
-                        <div className="text-gray-400 text-xs mb-1">Descripción:</div>
-                        {trade.description}
+                      
+                      {/* Sentimiento y fecha */}
+                      <div className="flex items-center justify-between mt-2">
+                        {trade.feeling && (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-xs text-gray-400">Sentimiento:</span>
+                            <span className="text-xs text-white">{trade.feeling}%</span>
+                            <span className="text-sm">
+                              {trade.feeling <= 30 ? '😞' : 
+                               trade.feeling <= 70 ? '🤔' : '😊'}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {new Date(trade.created_at).toLocaleDateString('es-ES')}
+                        </span>
                       </div>
-                    )}
-
-                    <div className="text-gray-500 text-xs mt-3">
-                      {new Date(trade.created_at).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                    </div>
+                    
+                    {/* Flecha para indicar que es clickeable */}
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center py-12">
+              <div className="text-center py-12">
                 <div className="text-6xl mb-4">📊</div>
                 <h3 className="text-white text-lg font-medium mb-2">
                   No tienes trades registrados
@@ -321,8 +285,179 @@ export default function TradesPage() {
         </div>
       </div>
 
+      {/* Modal de detalle del trade */}
+      {showModal && selectedTrade && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header del modal */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Contenido del modal */}
+            <div className="p-6 space-y-6">
+              {/* Imagen grande */}
+              {selectedTrade.screenshot_url && (
+                <div>
+                  <img
+                    src={selectedTrade.screenshot_url}
+                    alt={`Screenshot de ${selectedTrade.title}`}
+                    className="w-full rounded-lg"
+                  />
+                </div>
+              )}
+              
+              {/* Información detallada */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-gray-400 text-sm">Par:</span>
+                    <div className="text-white font-medium">{selectedTrade.pair}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Timeframe:</span>
+                    <div className="text-white font-medium">{selectedTrade.timeframe}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Sesión:</span>
+                    <div className="text-white font-medium">
+                      {selectedTrade.session === 'asian' ? 'Asiática' : 
+                       selectedTrade.session === 'london' ? 'Londres' : 
+                       selectedTrade.session === 'newyork' ? 'Nueva York' : 
+                       'Solapamiento'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-gray-400 text-sm">Bias:</span>
+                    <div className={`font-medium ${
+                      selectedTrade.bias === 'alcista' ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {selectedTrade.bias === 'alcista' ? 'Alcista' : 'Bajista'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Resultado:</span>
+                    <div className={`font-medium ${
+                      selectedTrade.result === 'win' ? 'text-green-400' : 
+                      selectedTrade.result === 'loss' ? 'text-red-400' : 'text-yellow-400'
+                    }`}>
+                      {selectedTrade.result === 'win' ? 'Win' : 
+                       selectedTrade.result === 'loss' ? 'Loss' : 'Break Even'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Risk:Reward:</span>
+                    <div className="text-white font-medium">{selectedTrade.risk_reward}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* P&L detallado */}
+              {(selectedTrade.pnl_percentage || selectedTrade.pnl_pips || selectedTrade.pnl_money) && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Resultado Financiero</h3>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    {selectedTrade.pnl_percentage && (
+                      <div>
+                        <div className={`text-xl font-bold ${
+                          selectedTrade.pnl_percentage > 0 ? 'text-green-400' : 
+                          selectedTrade.pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {selectedTrade.pnl_percentage > 0 ? '+' : ''}{selectedTrade.pnl_percentage.toFixed(2)}%
+                        </div>
+                        <div className="text-gray-500 text-xs">Porcentaje</div>
+                      </div>
+                    )}
+                    {selectedTrade.pnl_pips && (
+                      <div>
+                        <div className={`text-xl font-bold ${
+                          selectedTrade.pnl_pips > 0 ? 'text-green-400' : 
+                          selectedTrade.pnl_pips < 0 ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {selectedTrade.pnl_pips > 0 ? '+' : ''}{selectedTrade.pnl_pips.toFixed(1)}
+                        </div>
+                        <div className="text-gray-500 text-xs">Pips</div>
+                      </div>
+                    )}
+                    {selectedTrade.pnl_money && (
+                      <div>
+                        <div className={`text-xl font-bold ${
+                          selectedTrade.pnl_money > 0 ? 'text-green-400' : 
+                          selectedTrade.pnl_money < 0 ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {selectedTrade.pnl_money > 0 ? '+' : ''}${selectedTrade.pnl_money.toFixed(2)}
+                        </div>
+                        <div className="text-gray-500 text-xs">Dinero</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Sentimiento */}
+              {selectedTrade.feeling && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Análisis de Sentimiento</h3>
+                  <div className="flex items-center justify-center space-x-4">
+                    <span className="text-3xl">
+                      {selectedTrade.feeling <= 30 ? '😞' : 
+                       selectedTrade.feeling <= 70 ? '🤔' : '😊'}
+                    </span>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white">{selectedTrade.feeling}%</div>
+                      <div className="text-gray-400 text-sm">
+                        {selectedTrade.feeling <= 30 ? 'Frustrado' : 
+                         selectedTrade.feeling <= 70 ? 'Neutral' : 'Confiable'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Confluencias */}
+              {selectedTrade.confluences && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Confluencias</h3>
+                  <p className="text-white">{selectedTrade.confluences}</p>
+                </div>
+              )}
+              
+              {/* Descripción */}
+              {selectedTrade.description && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Descripción</h3>
+                  <p className="text-white">{selectedTrade.description}</p>
+                </div>
+              )}
+              
+              {/* Fecha */}
+              <div className="text-center text-gray-400 text-sm pt-4 border-t border-gray-700">
+                Registrado el {new Date(selectedTrade.created_at).toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Navigation Menu - Solo móvil */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-sm border-t border-gray-800 z-50" style={{backgroundColor: '#010314'}}>
         <div className="flex justify-around items-center py-2">
           {/* Nuevo Trade */}
           <Link

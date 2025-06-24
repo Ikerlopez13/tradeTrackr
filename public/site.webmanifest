@@ -1,0 +1,30 @@
+{
+  "name": "TradeTrackr - Journal de Trading Profesional",
+  "short_name": "TradeTrackr",
+  "description": "Registra, analiza y mejora tus trades como un trader profesional",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#010314",
+  "theme_color": "#010314",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["finance", "productivity", "business"],
+  "lang": "es"
+} 
