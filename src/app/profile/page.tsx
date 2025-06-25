@@ -6,13 +6,130 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
+// Componente para el grid de actividad - Versión simplificada
+const ActivityGrid = ({ trades }: { trades: any[] }) => {
+  // Generar solo los últimos 90 días para que sea más limpio
+  const generateDays = () => {
+    const days = []
+    const today = new Date()
+    
+    for (let i = 89; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      days.push(date)
+    }
+    
+    return days
+  }
+
+  // Contar trades por fecha
+  const getTradeCountForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    return trades.filter(trade => {
+      const tradeDate = new Date(trade.created_at).toISOString().split('T')[0]
+      return tradeDate === dateStr
+    }).length
+  }
+
+  // Obtener intensidad de color basada en la cantidad de trades
+  const getIntensity = (count: number) => {
+    if (count === 0) return 'bg-gray-800'
+    if (count === 1) return 'bg-green-900'
+    if (count === 2) return 'bg-green-700'
+    if (count >= 3) return 'bg-green-500'
+    return 'bg-green-300'
+  }
+
+  const days = generateDays()
+
+  // Organizar días por semanas (13 semanas para 90 días)
+  const weeks: (Date | null)[][] = []
+  let currentWeek: (Date | null)[] = []
+  
+  days.forEach((day, index) => {
+    if (index === 0) {
+      // Llenar días vacíos al inicio de la primera semana
+      for (let i = 0; i < day.getDay(); i++) {
+        currentWeek.push(null)
+      }
+    }
+    
+    currentWeek.push(day)
+    
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek)
+      currentWeek = []
+    }
+  })
+  
+  // Agregar la última semana si no está completa
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < 7) {
+      currentWeek.push(null)
+    }
+    weeks.push(currentWeek)
+  }
+
+  return (
+    <div className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-6 border border-gray-700 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-white">Actividad de Trading</h3>
+        <div className="text-sm text-gray-400">
+          Últimos 3 meses
+        </div>
+      </div>
+      
+      {/* Grid simplificado sin scroll */}
+      <div className="w-full">
+        {/* Grid de actividad */}
+        <div className="flex w-full">
+          {weeks.map((week, weekIndex) => (
+            <div key={weekIndex} className="flex flex-col flex-1 mr-1 last:mr-0">
+              {week.map((day, dayIndex) => {
+                if (!day) {
+                  return <div key={dayIndex} className="w-full h-3 mb-1" />
+                }
+                
+                const count = getTradeCountForDate(day)
+                const intensity = getIntensity(count)
+                
+                return (
+                  <div
+                    key={dayIndex}
+                    className={`w-full h-3 mb-1 rounded-sm ${intensity}`}
+                    title={`${day.toLocaleDateString('es-ES')} - ${count} trade${count !== 1 ? 's' : ''}`}
+                  />
+                )
+              })}
+            </div>
+          ))}
+        </div>
+        
+        {/* Leyenda fija */}
+        <div className="flex items-center justify-center mt-4 text-xs text-gray-400">
+          <span className="mr-2">Menos</span>
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-gray-800 rounded-sm"></div>
+            <div className="w-3 h-3 bg-green-900 rounded-sm"></div>
+            <div className="w-3 h-3 bg-green-700 rounded-sm"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+          </div>
+          <span className="ml-2">Más</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [trades, setTrades] = useState<any[]>([])
   const [editingBalance, setEditingBalance] = useState(false)
   const [newBalance, setNewBalance] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   
   const router = useRouter()
   const supabase = createClient()
@@ -74,8 +191,29 @@ export default function ProfilePage() {
       }
 
       setProfile(profileData)
+
+      // Cargar todos los trades del último año para el grid de actividad
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+      
+      const { data: tradesData, error: tradesError } = await supabase
+        .from('trades')
+        .select('id, created_at, result')
+        .eq('user_id', userId)
+        .gte('created_at', oneYearAgo.toISOString())
+        .order('created_at', { ascending: false })
+
+      if (tradesError) {
+        console.error('❌ Error loading trades:', tradesError)
+      } else {
+        console.log('📈 Loaded trades for activity grid:', tradesData?.length || 0)
+        setTrades(tradesData || [])
+      }
+
     } catch (err) {
       console.error('💥 Error loading user data:', err)
+    } finally {
+      setLastUpdated(new Date())
     }
   }
 
@@ -114,8 +252,9 @@ export default function ProfilePage() {
 
       console.log('✅ Balance updated successfully')
       
-      // Actualizar el estado local inmediatamente
-      setProfile({ ...profile, account_balance: balance })
+      // Recargar todos los datos del usuario para asegurar sincronización
+      await loadUserData(user.id)
+      
       setEditingBalance(false)
       setNewBalance('')
       
@@ -124,6 +263,13 @@ export default function ProfilePage() {
       console.error('💥 Error:', err)
       alert('Error inesperado al actualizar el balance')
     }
+  }
+
+  // Función para refrescar datos manualmente
+  const refreshData = async () => {
+    if (!user) return
+    console.log('🔄 Refreshing user data...')
+    await loadUserData(user.id)
   }
 
   if (loading) {
@@ -216,9 +362,20 @@ export default function ProfilePage() {
       <div className="pb-20 md:pb-8">
         <div className="max-w-2xl mx-auto px-6 py-6">
           {/* Título principal */}
-          <h1 className="text-xl md:text-2xl font-bold text-white text-center mb-8">
-            Mi Perfil
-          </h1>
+          <div className="flex items-center justify-center mb-8">
+            <h1 className="text-xl md:text-2xl font-bold text-white">
+              Mi Perfil
+            </h1>
+            <button
+              onClick={refreshData}
+              className="ml-4 p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              title="Refrescar datos"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
 
           {/* Información del usuario */}
           <div className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-6 border border-gray-700 mb-6">
@@ -258,6 +415,14 @@ export default function ProfilePage() {
                     ${(profile?.account_balance || 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className="text-gray-400 text-xs">Balance Actual</div>
+                  
+                  {/* Debug info */}
+                  {lastUpdated && (
+                    <div className="text-gray-500 text-xs mt-2 bg-gray-800/30 p-2 rounded">
+                      <div>Última actualización: {lastUpdated.toLocaleTimeString()}</div>
+                      <div>Balance en memoria: ${profile?.account_balance || 'No cargado'}</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mostrar P&L si hay trades */}
@@ -364,6 +529,9 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Grid de Actividad de Trading */}
+          <ActivityGrid trades={trades} />
 
           {/* Estadísticas básicas */}
           {stats && stats.total_trades > 0 && (

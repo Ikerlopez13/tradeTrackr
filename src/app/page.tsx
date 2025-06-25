@@ -367,7 +367,7 @@ export default function Home() {
   }
 
   if (loading) {
-    return (
+  return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
         <Image
           src="/logo.jpeg"
@@ -924,63 +924,54 @@ export default function Home() {
               )}
             </div>
 
-            {/* Slider de confianza */}
+            {/* Selector de sentimiento - Versión con botones fijos */}
             <div>
               <label className="block text-white font-medium mb-3 text-base">
                 ¿Cómo te sentiste con el trade?
               </label>
-              <div className="text-center mb-4">
-                <div className="flex items-center justify-center space-x-2">
-                  <span className="text-xl font-bold text-white">{confidence}%</span>
-                  <span className="text-xl">{getConfidenceEmoji(confidence)}</span>
-                </div>
-              </div>
               
-              <div className="confidence-slider-container">
-                {/* Fondo con secciones de colores */}
-                <div 
-                  className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 rounded-full overflow-hidden"
-                  style={{ 
-                    height: '8px', 
-                    zIndex: 1,
-                    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)'
-                  }}
-                >
-                  {/* Sección roja (0-33%) */}
-                  <div className="absolute top-0 left-0 h-full bg-red-600" style={{ width: '33%' }}></div>
-                  {/* Sección amarilla (33-66%) */}
-                  <div className="absolute top-0 h-full bg-yellow-500" style={{ left: '33%', width: '33%' }}></div>
-                  {/* Sección verde (66-100%) */}
-                  <div className="absolute top-0 h-full bg-green-500" style={{ left: '66%', width: '34%' }}></div>
-                </div>
-                
-                {/* Slider */}
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={confidence}
-                  onChange={(e) => !isTrialExpired && setConfidence(Number(e.target.value))}
-                  className="confidence-slider"
-                  style={{ zIndex: 5 }}
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => !isTrialExpired && setConfidence(25)}
+                  className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
+                    confidence <= 33
+                      ? 'bg-red-600/20 text-red-400 border border-red-500/50'
+                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                  }`}
                   disabled={isTrialExpired}
-                />
-              </div>
-              
-              {/* Labels debajo del slider */}
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex flex-col items-center">
-                  <span className="text-base mb-0.5">😞</span>
-                  <span className="text-red-400 font-medium text-xs">Mal</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-base mb-0.5">🤔</span>
-                  <span className="text-yellow-400 font-medium text-xs">Regular</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-base mb-0.5">😊</span>
-                  <span className="text-green-400 font-medium text-xs">Genial</span>
-                </div>
+                >
+                  <span className="text-2xl">😞</span>
+                  <span>Mal</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => !isTrialExpired && setConfidence(55)}
+                  className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
+                    confidence > 33 && confidence <= 66
+                      ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/50'
+                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                  }`}
+                  disabled={isTrialExpired}
+                >
+                  <span className="text-2xl">🤔</span>
+                  <span>Regular</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => !isTrialExpired && setConfidence(85)}
+                  className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
+                    confidence > 66
+                      ? 'bg-green-600/20 text-green-400 border border-green-500/50'
+                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                  }`}
+                  disabled={isTrialExpired}
+                >
+                  <span className="text-2xl">😊</span>
+                  <span>Genial</span>
+                </button>
               </div>
             </div>
 

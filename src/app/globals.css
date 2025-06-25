@@ -125,6 +125,56 @@ body::before {
   grid-template-columns: repeat(14, minmax(0, 1fr));
 }
 
+/* Slider simple y discreto */
+.slider-simple {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-simple::-webkit-slider-track {
+  background: #374151;
+  height: 4px;
+  border-radius: 2px;
+  border: none;
+}
+
+.slider-simple::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6b7280;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.slider-simple::-webkit-slider-thumb:hover {
+  background: #9ca3af;
+}
+
+.slider-simple::-moz-range-track {
+  background: #374151;
+  height: 4px;
+  border-radius: 2px;
+  border: none;
+}
+
+.slider-simple::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6b7280;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.slider-simple::-moz-range-thumb:hover {
+  background: #9ca3af;
+}
+
 /* Utilidades adicionales */
 .line-clamp-2 {
   display: -webkit-box;

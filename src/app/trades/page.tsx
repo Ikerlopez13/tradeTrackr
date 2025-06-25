@@ -67,7 +67,8 @@ export default function TradesPage() {
         return
       }
 
-      setIsPremium(profile?.is_premium || false)
+      const premiumStatus = profile?.is_premium || false
+      setIsPremium(premiumStatus)
     } catch (err) {
       console.error('Error loading user data:', err)
     }
@@ -93,24 +94,38 @@ export default function TradesPage() {
   }
 
   const deleteTrade = async () => {
-    if (!selectedTrade || !isPremium) return
+    if (!selectedTrade) {
+      return
+    }
+
+    if (!user?.id) {
+      alert('Error: Usuario no autenticado')
+      return
+    }
 
     setDeletingTrade(true)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('trades')
         .delete()
         .eq('id', selectedTrade.id)
-        .eq('user_id', user.id) // Seguridad extra
+        .eq('user_id', user.id)
+        .select()
 
       if (error) {
         console.error('Error deleting trade:', error)
-        alert('Error al eliminar el trade. Inténtalo de nuevo.')
+        alert(`Error al eliminar el trade: ${error.message}`)
+        return
+      }
+
+      if (!data || data.length === 0) {
+        alert('No se pudo eliminar el trade. Verifica que sea tuyo.')
         return
       }
 
       // Actualizar la lista local
-      setTrades(trades.filter(trade => trade.id !== selectedTrade.id))
+      const updatedTrades = trades.filter(trade => trade.id !== selectedTrade.id)
+      setTrades(updatedTrades)
       
       // Cerrar modales
       setShowDeleteConfirm(false)
@@ -143,10 +158,6 @@ export default function TradesPage() {
   }
 
   const openDeleteConfirm = () => {
-    if (!isPremium) {
-      alert('⭐ Esta función está disponible solo para usuarios Premium. ¡Actualiza tu plan para eliminar trades!')
-      return
-    }
     setShowDeleteConfirm(true)
   }
 
@@ -245,87 +256,104 @@ export default function TradesPage() {
               trades.map((trade) => (
                 <div 
                   key={trade.id} 
-                  onClick={() => openTradeModal(trade)}
-                  className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-700 cursor-pointer hover:bg-gray-800/80 transition-all duration-200 hover:border-gray-600"
+                  className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-700 hover:bg-gray-800/80 transition-all duration-200 hover:border-gray-600 relative"
                 >
-                  <div className="flex items-center space-x-4">
-                    {/* Imagen del trade - Más pequeña como preview */}
-                    {trade.screenshot_url && (
-                      <div className="flex-shrink-0">
-                        <img
-                          src={trade.screenshot_url}
-                          alt={`Screenshot de ${trade.title}`}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Información principal */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-white font-semibold text-lg truncate">{trade.title}</h3>
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            trade.result === 'win' 
-                              ? 'bg-green-600/20 text-green-400'
-                              : trade.result === 'loss'
-                                ? 'bg-red-600/20 text-red-400'
-                                : 'bg-yellow-600/20 text-yellow-400'
-                          }`}>
-                            {trade.result === 'win' ? 'Win' : trade.result === 'loss' ? 'Loss' : 'BE'}
+                  {/* Botón de eliminar en la esquina superior derecha */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation() // Evitar que se abra el modal de detalles
+                      setSelectedTrade(trade)
+                      setShowDeleteConfirm(true)
+                    }}
+                    className="absolute top-2 right-2 w-6 h-6 bg-red-600/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold transition-colors z-10"
+                    title="Eliminar trade"
+                  >
+                    ×
+                  </button>
+
+                  <div 
+                    onClick={() => openTradeModal(trade)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-4">
+                      {/* Imagen del trade - Más pequeña como preview */}
+                      {trade.screenshot_url && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={trade.screenshot_url}
+                            alt={`Screenshot de ${trade.title}`}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Información principal */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-white font-semibold text-lg truncate">{trade.title}</h3>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              trade.result === 'win' 
+                                ? 'bg-green-600/20 text-green-400'
+                                : trade.result === 'loss'
+                                  ? 'bg-red-600/20 text-red-400'
+                                  : 'bg-yellow-600/20 text-yellow-400'
+                            }`}>
+                              {trade.result === 'win' ? 'Win' : trade.result === 'loss' ? 'Loss' : 'BE'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2 text-sm text-gray-300">
+                            <span>{trade.pair}</span>
+                            <span className="text-gray-500">•</span>
+                            <span>{trade.timeframe}</span>
+                          </div>
+                          
+                          {/* P&L destacado */}
+                          {(trade.pnl_percentage || trade.pnl_pips || trade.pnl_money) && (
+                            <div className={`text-sm font-semibold ${
+                              (trade.pnl_percentage || trade.pnl_pips || trade.pnl_money || 0) > 0 ? 'text-green-400' : 
+                              (trade.pnl_percentage || trade.pnl_pips || trade.pnl_money || 0) < 0 ? 'text-red-400' : 'text-gray-400'
+                            }`}>
+                              {trade.pnl_percentage && (
+                                <span>{trade.pnl_percentage > 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%</span>
+                              )}
+                              {trade.pnl_pips && !trade.pnl_percentage && (
+                                <span>{trade.pnl_pips > 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)} pips</span>
+                              )}
+                              {trade.pnl_money && !trade.pnl_percentage && !trade.pnl_pips && (
+                                <span>{trade.pnl_money > 0 ? '+' : ''}${trade.pnl_money.toFixed(2)}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Sentimiento y fecha */}
+                        <div className="flex items-center justify-between mt-2">
+                          {trade.feeling && (
+                            <div className="flex items-center space-x-1">
+                              <span className="text-xs text-gray-400">Sentimiento:</span>
+                              <span className="text-xs text-white">{trade.feeling}%</span>
+                              <span className="text-sm">
+                                {trade.feeling <= 30 ? '😞' : 
+                                 trade.feeling <= 70 ? '🤔' : '😊'}
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {new Date(trade.created_at).toLocaleDateString('es-ES')}
                           </span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-sm text-gray-300">
-                          <span>{trade.pair}</span>
-                          <span className="text-gray-500">•</span>
-                          <span>{trade.timeframe}</span>
-                        </div>
-                        
-                        {/* P&L destacado */}
-                        {(trade.pnl_percentage || trade.pnl_pips || trade.pnl_money) && (
-                          <div className={`text-sm font-semibold ${
-                            (trade.pnl_percentage || trade.pnl_pips || trade.pnl_money || 0) > 0 ? 'text-green-400' : 
-                            (trade.pnl_percentage || trade.pnl_pips || trade.pnl_money || 0) < 0 ? 'text-red-400' : 'text-gray-400'
-                          }`}>
-                            {trade.pnl_percentage && (
-                              <span>{trade.pnl_percentage > 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%</span>
-                            )}
-                            {trade.pnl_pips && !trade.pnl_percentage && (
-                              <span>{trade.pnl_pips > 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)} pips</span>
-                            )}
-                            {trade.pnl_money && !trade.pnl_percentage && !trade.pnl_pips && (
-                              <span>{trade.pnl_money > 0 ? '+' : ''}${trade.pnl_money.toFixed(2)}</span>
-                            )}
-                          </div>
-                        )}
+                      {/* Flecha para indicar que es clickeable */}
+                      <div className="flex-shrink-0">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
-                      
-                      {/* Sentimiento y fecha */}
-                      <div className="flex items-center justify-between mt-2">
-                        {trade.feeling && (
-                          <div className="flex items-center space-x-1">
-                            <span className="text-xs text-gray-400">Sentimiento:</span>
-                            <span className="text-xs text-white">{trade.feeling}%</span>
-                            <span className="text-sm">
-                              {trade.feeling <= 30 ? '😞' : 
-                               trade.feeling <= 70 ? '🤔' : '😊'}
-                            </span>
-                          </div>
-                        )}
-                        <span className="text-xs text-gray-500">
-                          {new Date(trade.created_at).toLocaleDateString('es-ES')}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Flecha para indicar que es clickeable */}
-                    <div className="flex-shrink-0">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
                     </div>
                   </div>
                 </div>
@@ -359,21 +387,6 @@ export default function TradesPage() {
             <div className="flex items-center justify-between p-6 border-b border-gray-700">
               <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
               <div className="flex items-center space-x-3">
-                {/* Botón de eliminar - Solo para usuarios premium */}
-                <button
-                  onClick={openDeleteConfirm}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isPremium 
-                      ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' 
-                      : 'text-gray-500 hover:text-gray-400'
-                  }`}
-                  title={isPremium ? 'Eliminar trade' : 'Función Premium - Eliminar trade'}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-                
                 {/* Botón de cerrar */}
                 <button
                   onClick={closeModal}
@@ -595,10 +608,12 @@ export default function TradesPage() {
                   Cancelar
                 </button>
                 <button
-                  onClick={deleteTrade}
-                  disabled={deletingTrade || !isPremium}
+                  onClick={() => {
+                    deleteTrade()
+                  }}
+                  disabled={deletingTrade}
                   className={`flex-1 py-2 px-4 rounded-lg transition-colors font-medium ${
-                    isPremium && !deletingTrade
+                    !deletingTrade
                       ? 'bg-red-600 text-white hover:bg-red-700'
                       : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                   }`}
