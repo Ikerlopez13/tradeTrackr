@@ -31,6 +31,9 @@ export default function TradesPage() {
   const [trades, setTrades] = useState<Trade[]>([])
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingTrade, setDeletingTrade] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
@@ -43,12 +46,32 @@ export default function TradesPage() {
         return
       }
       setUser(user)
+      await loadUserData(user.id)
       await loadTrades(user.id)
       setLoading(false)
     }
 
     getUser()
   }, [router, supabase.auth])
+
+  const loadUserData = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error loading user profile:', error)
+        return
+      }
+
+      setIsPremium(profile?.is_premium || false)
+    } catch (err) {
+      console.error('Error loading user data:', err)
+    }
+  }
 
   const loadTrades = async (userId: string) => {
     try {
@@ -69,6 +92,40 @@ export default function TradesPage() {
     }
   }
 
+  const deleteTrade = async () => {
+    if (!selectedTrade || !isPremium) return
+
+    setDeletingTrade(true)
+    try {
+      const { error } = await supabase
+        .from('trades')
+        .delete()
+        .eq('id', selectedTrade.id)
+        .eq('user_id', user.id) // Seguridad extra
+
+      if (error) {
+        console.error('Error deleting trade:', error)
+        alert('Error al eliminar el trade. Inténtalo de nuevo.')
+        return
+      }
+
+      // Actualizar la lista local
+      setTrades(trades.filter(trade => trade.id !== selectedTrade.id))
+      
+      // Cerrar modales
+      setShowDeleteConfirm(false)
+      setShowModal(false)
+      setSelectedTrade(null)
+      
+      alert('✅ Trade eliminado exitosamente')
+    } catch (err) {
+      console.error('Error:', err)
+      alert('Error inesperado al eliminar el trade')
+    } finally {
+      setDeletingTrade(false)
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
@@ -82,6 +139,15 @@ export default function TradesPage() {
   const closeModal = () => {
     setShowModal(false)
     setSelectedTrade(null)
+    setShowDeleteConfirm(false)
+  }
+
+  const openDeleteConfirm = () => {
+    if (!isPremium) {
+      alert('⭐ Esta función está disponible solo para usuarios Premium. ¡Actualiza tu plan para eliminar trades!')
+      return
+    }
+    setShowDeleteConfirm(true)
   }
 
   if (loading) {
@@ -292,14 +358,32 @@ export default function TradesPage() {
             {/* Header del modal */}
             <div className="flex items-center justify-between p-6 border-b border-gray-700">
               <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center space-x-3">
+                {/* Botón de eliminar - Solo para usuarios premium */}
+                <button
+                  onClick={openDeleteConfirm}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isPremium 
+                      ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' 
+                      : 'text-gray-500 hover:text-gray-400'
+                  }`}
+                  title={isPremium ? 'Eliminar trade' : 'Función Premium - Eliminar trade'}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+                
+                {/* Botón de cerrar */}
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             
             {/* Contenido del modal */}
@@ -450,6 +534,84 @@ export default function TradesPage() {
                   hour: '2-digit',
                   minute: '2-digit'
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteConfirm && selectedTrade && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-60 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg max-w-md w-full border border-red-500/30">
+            {/* Header del modal de confirmación */}
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-red-900/30 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Eliminar Trade</h3>
+                  <p className="text-sm text-gray-400">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Contenido del modal de confirmación */}
+            <div className="p-6">
+              <p className="text-gray-300 mb-4">
+                ¿Estás seguro de que quieres eliminar el trade <span className="font-semibold text-white">"{selectedTrade.title}"</span>?
+              </p>
+              
+              <div className="bg-gray-900/50 rounded-lg p-3 mb-4">
+                <div className="text-sm text-gray-400 space-y-1">
+                  <div>• Se eliminará permanentemente de tu historial</div>
+                  <div>• Se recalcularán automáticamente tus estadísticas</div>
+                  <div>• No podrás recuperar esta información</div>
+                </div>
+              </div>
+
+              {!isPremium && (
+                <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xl">⭐</span>
+                    <div className="text-sm">
+                      <div className="text-yellow-400 font-medium">Función Premium</div>
+                      <div className="text-yellow-300/80">Actualiza a Premium para eliminar trades</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Botones de acción */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors"
+                  disabled={deletingTrade}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={deleteTrade}
+                  disabled={deletingTrade || !isPremium}
+                  className={`flex-1 py-2 px-4 rounded-lg transition-colors font-medium ${
+                    isPremium && !deletingTrade
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {deletingTrade ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Eliminando...</span>
+                    </div>
+                  ) : (
+                    'Eliminar Trade'
+                  )}
+                </button>
               </div>
             </div>
           </div>
