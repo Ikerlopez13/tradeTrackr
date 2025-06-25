@@ -473,6 +473,12 @@ export default function Home() {
             Mis Trades
           </Link>
           <Link
+            href="/pricing"
+            className="text-gray-400 font-medium hover:text-white transition-colors"
+          >
+            Pricing
+          </Link>
+          <Link
             href="/profile"
             className="text-gray-400 font-medium hover:text-white transition-colors"
           >

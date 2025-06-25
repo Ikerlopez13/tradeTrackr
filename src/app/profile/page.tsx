@@ -153,65 +153,110 @@ export default function ProfilePage() {
     try {
       console.log('🔍 Loading user data for:', userId)
       
-      // Cargar estadísticas
-      const { data: statsData, error: statsError } = await supabase
-        .from('user_stats')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      console.log('📊 Stats query result:', { statsData, statsError })
-      if (statsError && statsError.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('❌ Error loading stats:', statsError)
+      // Función auxiliar para hacer requests seguros
+      const safeSupabaseRequest = async (requestFn: Function, fallbackValue: any = null) => {
+        try {
+          const result = await requestFn()
+          return result
+        } catch (error) {
+          console.error('❌ Supabase request error:', error)
+          return { data: fallbackValue, error }
+        }
       }
       
-      setStats(statsData)
+      // Cargar estadísticas con manejo seguro
+      console.log('📊 Loading stats...')
+      const statsResult = await safeSupabaseRequest(
+        () => supabase
+          .from('user_stats')
+          .select('*')
+          .eq('user_id', userId)
+          .single(),
+        null
+      )
 
-      // Cargar perfil
-      console.log('👤 Loading profile for user:', userId)
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      console.log('👤 Profile query result:', { profileData, profileError })
+      console.log('📊 Stats query result:', statsResult)
       
-      if (profileError) {
-        console.error('❌ Error loading profile:', profileError)
-        if (profileError.code === 'PGRST116') {
-          console.log('🚨 No profile found for user - this might be the issue!')
+      if (statsResult.error && statsResult.error.code !== 'PGRST116') {
+        console.error('❌ Error loading stats:', statsResult.error)
+      }
+      
+      setStats(statsResult.data)
+
+      // Cargar perfil con manejo seguro
+      console.log('👤 Loading profile...')
+      const profileResult = await safeSupabaseRequest(
+        () => supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        null
+      )
+
+      console.log('👤 Profile query result:', profileResult)
+      
+      if (profileResult.error) {
+        console.error('❌ Error loading profile:', profileResult.error)
+        if (profileResult.error.code === 'PGRST116') {
+          console.log('🚨 No profile found for user - attempting to create one')
+          
+          // Intentar crear perfil automáticamente
+          try {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                username: user?.email?.split('@')[0] || 'Usuario',
+                account_balance: 1000.00,
+                is_premium: false
+              })
+              .select()
+              .single()
+            
+            if (createError) {
+              console.error('❌ Error creating profile:', createError)
+            } else {
+              console.log('✅ Profile created automatically:', newProfile)
+              setProfile(newProfile)
+            }
+          } catch (createErr) {
+            console.error('❌ Exception creating profile:', createErr)
+          }
         }
       } else {
-        console.log('✅ Profile loaded successfully:')
-        console.log('   - ID:', profileData.id)
-        console.log('   - Username:', profileData.username)
-        console.log('   - Account Balance:', profileData.account_balance)
-        console.log('   - Is Premium:', profileData.is_premium)
+        console.log('✅ Profile loaded successfully:', profileResult.data)
+        setProfile(profileResult.data)
       }
 
-      setProfile(profileData)
-
-      // Cargar todos los trades del último año para el grid de actividad
+      // Cargar trades con manejo seguro
+      console.log('📈 Loading trades...')
       const oneYearAgo = new Date()
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
       
-      const { data: tradesData, error: tradesError } = await supabase
-        .from('trades')
-        .select('id, created_at, result')
-        .eq('user_id', userId)
-        .gte('created_at', oneYearAgo.toISOString())
-        .order('created_at', { ascending: false })
+      const tradesResult = await safeSupabaseRequest(
+        () => supabase
+          .from('trades')
+          .select('id, created_at, result')
+          .eq('user_id', userId)
+          .gte('created_at', oneYearAgo.toISOString())
+          .order('created_at', { ascending: false }),
+        []
+      )
 
-      if (tradesError) {
-        console.error('❌ Error loading trades:', tradesError)
+      if (tradesResult.error) {
+        console.error('❌ Error loading trades:', tradesResult.error)
       } else {
-        console.log('📈 Loaded trades for activity grid:', tradesData?.length || 0)
-        setTrades(tradesData || [])
+        console.log('📈 Loaded trades for activity grid:', tradesResult.data?.length || 0)
+        setTrades(tradesResult.data || [])
       }
 
     } catch (err) {
-      console.error('💥 Error loading user data:', err)
+      console.error('💥 Critical error loading user data:', err)
+      // En caso de error crítico, establecer valores por defecto
+      setStats(null)
+      setProfile(null)
+      setTrades([])
     } finally {
       setLastUpdated(new Date())
     }
@@ -342,6 +387,12 @@ export default function ProfilePage() {
             className="text-gray-400 font-medium hover:text-white transition-colors"
           >
             Mis Trades
+          </Link>
+          <Link
+            href="/pricing"
+            className="text-gray-400 font-medium hover:text-white transition-colors"
+          >
+            Pricing
           </Link>
           <Link
             href="/profile"
@@ -593,20 +644,71 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Botón Premium */}
+          {/* Botón Premium - Estilo elegante como tarjeta anual */}
           {!isPremium && (
-            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-lg p-6 border border-yellow-500/30 mb-6">
+            <div className="relative rounded-lg p-6 backdrop-blur-sm border transition-all duration-300 hover:scale-105 hover:border-purple-500/50 bg-gradient-to-b from-purple-500/10 to-blue-500/10 border-purple-500/30 mb-6">
+              {/* Badge "Más Popular" */}
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                  Más Popular
+                </div>
+              </div>
+
               <div className="text-center">
-                <div className="text-3xl mb-2">⭐</div>
-                <h3 className="text-white font-bold text-xl mb-2">Actualiza a Premium</h3>
-                <p className="text-yellow-100 text-sm mb-4">
-                  • Trades ilimitados<br/>
-                  • Análisis avanzados<br/>
-                  • Exportar datos<br/>
-                  • Soporte prioritario
-                </p>
-                <button className="w-full bg-white text-yellow-600 font-bold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors">
-                  Upgrade a Premium - $5.99/mes
+                <div className="text-3xl mb-3">🚀</div>
+                <h3 className="text-lg font-bold mb-2 text-white">Actualiza a Premium</h3>
+                <p className="text-gray-400 text-sm mb-4">Lleva tu trading al siguiente nivel</p>
+                
+                <div className="mb-4">
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-2xl font-bold text-white">
+                      $5.99
+                    </span>
+                    <span className="text-gray-400 text-sm ml-1">
+                      /mes
+                    </span>
+                  </div>
+                  <div className="text-xs text-green-400 mt-1 font-medium">
+                    Ahorra $22/año con plan anual
+                  </div>
+                </div>
+
+                <ul className="space-y-2 mb-6 text-left text-sm">
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-300">Trades ilimitados</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-300">Análisis avanzado con IA</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-300">Reportes detallados PDF</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-300">Soporte prioritario</span>
+                  </li>
+                </ul>
+
+                <button 
+                  onClick={() => {
+                    const email = user?.email || ''
+                    const stripeUrl = `https://buy.stripe.com/cNidRa8XtdYN94G31EaR207${email ? `?prefilled_email=${encodeURIComponent(email)}` : ''}`
+                    window.open(stripeUrl, '_blank')
+                  }}
+                  className="w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 transform hover:scale-105 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-sm"
+                >
+                  Comenzar Premium
                 </button>
               </div>
             </div>

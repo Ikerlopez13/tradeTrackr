@@ -228,6 +228,12 @@ export default function TradesPage() {
             Mis Trades
           </Link>
           <Link
+            href="/pricing"
+            className="text-gray-400 font-medium hover:text-white transition-colors"
+          >
+            Pricing
+          </Link>
+          <Link
             href="/profile"
             className="text-gray-400 font-medium hover:text-white transition-colors"
           >
