@@ -12,7 +12,6 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
   
   const router = useRouter()
   const supabase = createClient()
@@ -21,7 +20,6 @@ export default function Signup() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    setMessage('')
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden')
@@ -44,8 +42,8 @@ export default function Signup() {
       if (error) {
         setError(error.message)
       } else {
-        setMessage('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.')
-        setTimeout(() => router.push('/login'), 3000)
+        // Redirigir directamente a la aplicación después del registro exitoso
+        router.push('/')
       }
     } catch (err) {
       setError('Error inesperado')
@@ -130,12 +128,6 @@ export default function Signup() {
             {error && (
               <div className="bg-red-600/20 border border-red-600/30 text-red-400 p-3 rounded-lg text-sm">
                 {error}
-              </div>
-            )}
-
-            {message && (
-              <div className="bg-green-600/20 border border-green-600/30 text-green-400 p-3 rounded-lg text-sm">
-                {message}
               </div>
             )}
 
