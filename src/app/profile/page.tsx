@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import TradeAdviceCard from '@/components/TradeAdviceCard'
 
 // Componente para el grid de actividad - Versión simplificada
 const ActivityGrid = ({ trades }: { trades: any[] }) => {
@@ -713,6 +714,17 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+
+          {/* Sección de Consejos de IA - NUEVA */}
+          <div className="mb-6">
+            <h2 className="text-white text-lg font-semibold mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              Consejo de IA
+            </h2>
+            <TradeAdviceCard className="mb-6" />
+          </div>
 
           {/* Navegación rápida */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

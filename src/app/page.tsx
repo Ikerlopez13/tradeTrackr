@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import TradeAdviceCard, { useTradeAdvice } from '@/components/TradeAdviceCard'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -18,6 +19,7 @@ export default function Home() {
   const [uploadLoading, setUploadLoading] = useState(false)
   const [stats, setStats] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [showAdvice, setShowAdvice] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     timeframe: '',
@@ -32,6 +34,7 @@ export default function Home() {
   
   const router = useRouter()
   const supabase = createClient()
+  const { createAdvice } = useTradeAdvice()
 
   useEffect(() => {
     const getUser = async () => {
@@ -354,6 +357,9 @@ export default function Home() {
         
         // Recargar datos del usuario para actualizar el contador
         await loadUserData(user.id)
+
+        // Mostrar consejo
+        await showTradeAdvice(tradeData)
       }
     } catch (err) {
       console.error('💥 Unexpected error:', err)
@@ -364,6 +370,63 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  // Función para generar consejos de IA basados en el trade
+  const generateTradeAdvice = (tradeData: any) => {
+    const advices = [
+      // Consejos basados en resultado
+      ...(tradeData.result === 'Win' ? [
+        `¡Excelente trade ganador en ${tradeData.pair}! Tu estrategia en ${tradeData.timeframe} está funcionando bien. Mantén la disciplina y sigue aplicando el mismo análisis.`,
+        `Gran trabajo con ese trade alcista/bajista en ${tradeData.pair}. Tu ratio riesgo/beneficio de ${tradeData.risk_reward} es sólido. Considera documentar qué funcionó bien para replicarlo.`,
+        `Trade ganador bien ejecutado. Tu nivel de confianza del ${tradeData.feeling}% se alineó con el resultado. Sigue confiando en tu análisis cuando tengas confluencias claras.`
+      ] : tradeData.result === 'Loss' ? [
+        `No te desanimes por esta pérdida en ${tradeData.pair}. Los trades perdedores son parte del juego. Revisa tu análisis y ajusta si es necesario, pero mantén tu plan de trading.`,
+        `Esta pérdida en ${tradeData.timeframe} es una oportunidad de aprendizaje. Con un R:R de ${tradeData.risk_reward}, estás gestionando bien el riesgo. Mantén la consistencia.`,
+        `Pérdida controlada en ${tradeData.pair}. Tu gestión de riesgo está funcionando. Analiza qué señales podrían haber sido diferentes y ajusta para el próximo trade.`
+      ] : [
+        `Trade en breakeven en ${tradeData.pair}. Aunque no ganaste, tampoco perdiste capital. Esto muestra buena gestión de riesgo. Evalúa si pudiste haber optimizado la salida.`,
+        `Breakeven en ${tradeData.timeframe} - resultado neutral pero gestión inteligente. Considera si tus niveles de take profit fueron demasiado ambiciosos para las condiciones del mercado.`
+      ]),
+      
+      // Consejos basados en confianza
+      ...(tradeData.feeling <= 33 ? [
+        `Noté que tu nivel de confianza fue bajo (${tradeData.feeling}%). Si no te sientes seguro de un setup, considera reducir el tamaño de posición o esperar mejores confluencias.`,
+        `Confianza del ${tradeData.feeling}% sugiere incertidumbre. En el futuro, busca setups con más confluencias técnicas antes de entrar al mercado.`
+      ] : tradeData.feeling >= 70 ? [
+        `Excelente nivel de confianza del ${tradeData.feeling}%! Cuando tienes alta convicción en un trade, es cuando generalmente obtienes los mejores resultados. Sigue confiando en tu análisis.`,
+        `Tu confianza del ${tradeData.feeling}% muestra que identificaste un setup sólido. Estos son los trades que debes buscar: alta probabilidad con múltiples confluencias.`
+      ] : []),
+
+      // Consejos basados en sesión
+      ...(tradeData.session === 'London' ? [
+        `Trade en sesión de Londres: generalmente hay buena volatilidad. Asegúrate de estar atento a los datos económicos europeos que pueden afectar tu ${tradeData.pair}.`,
+      ] : tradeData.session === 'New York' ? [
+        `Sesión de Nueva York es perfecta para ${tradeData.pair}. La liquidez alta te permite mejores entradas y salidas. Mantén ojo en los datos económicos de EE.UU.`,
+      ] : tradeData.session === 'Asian' ? [
+        `Trading en sesión asiática requiere paciencia. Los movimientos suelen ser más lentos pero más predecibles. Tu enfoque en ${tradeData.timeframe} es apropiado.`,
+      ] : []),
+
+      // Consejos generales de mejora
+      `Para tu próximo trade en ${tradeData.pair}, considera documentar más confluencias técnicas. Esto te ayudará a tomar decisiones más informadas.`,
+      `Tu ratio R:R de ${tradeData.risk_reward} es profesional. Mantén siempre esta disciplina de gestión de riesgo en todos tus trades.`,
+      `Continúa siendo consistente con tu análisis en ${tradeData.timeframe}. La consistencia en el enfoque es clave para el éxito a largo plazo.`,
+      `Considera revisar tus trades semanalmente para identificar patrones. Esto te ayudará a refinar tu estrategia y mejorar tu tasa de éxito.`
+    ]
+
+    // Seleccionar un consejo aleatorio
+    return advices[Math.floor(Math.random() * advices.length)]
+  }
+
+  // Función para crear y mostrar consejo después de guardar trade
+  const showTradeAdvice = async (tradeData: any) => {
+    try {
+      const adviceText = generateTradeAdvice(tradeData)
+      await createAdvice(user.id, adviceText)
+      setShowAdvice(true)
+    } catch (error) {
+      console.error('Error creating advice:', error)
+    }
   }
 
   if (loading) {
@@ -1047,6 +1110,56 @@ export default function Home() {
           </Link>
         </div>
       </nav>
+
+      {/* Modal de Consejo de IA */}
+      {showAdvice && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900/95 rounded-xl p-6 max-w-md w-full mx-4 border border-blue-500/20">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">AI</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold">TradeTrackrAI</h3>
+                  <p className="text-blue-300 text-xs">Trade guardado exitosamente</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAdvice(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Contenido del consejo */}
+            <div className="mb-6">
+              <TradeAdviceCard className="!p-0 !bg-transparent !border-0" />
+            </div>
+
+            {/* Botones */}
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowAdvice(false)}
+                className="flex-1 bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+              >
+                Entendido
+              </button>
+              <Link
+                href="/profile"
+                onClick={() => setShowAdvice(false)}
+                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-500 transition-colors font-medium text-center"
+              >
+                Ver Perfil
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
