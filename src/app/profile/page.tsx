@@ -340,8 +340,8 @@ export default function ProfilePage() {
 
   const totalTrades = stats?.total_trades || 0
   const isPremium = profile?.is_premium || false
-  const freeTradesLeft = Math.max(0, 15 - totalTrades)
-  const isTrialExpired = !isPremium && totalTrades >= 15
+  const freeTradesLeft = Math.max(0, 3 - totalTrades)
+  const isTrialExpired = !isPremium && totalTrades >= 3
 
   return (
     <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
@@ -553,11 +553,11 @@ export default function ProfilePage() {
                         <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
                           <div 
                             className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(freeTradesLeft / 15) * 100}%` }}
+                            style={{ width: `${(freeTradesLeft / 3) * 100}%` }}
                           ></div>
                         </div>
                         <div className="text-gray-400 text-xs">
-                          {totalTrades} de 15 trades utilizados
+                          {totalTrades} de 3 trades utilizados
                         </div>
                       </>
                     ) : (
@@ -569,7 +569,7 @@ export default function ProfilePage() {
                           <div className="bg-red-500 h-3 rounded-full w-full"></div>
                         </div>
                         <div className="text-gray-400 text-xs mb-3">
-                          Has usado todos tus trades gratuitos (15/15)
+                          Has usado todos tus trades gratuitos (3/3)
                         </div>
                         <div className="text-yellow-400 text-sm font-medium">
                           ¡Actualiza a Premium para trades ilimitados!

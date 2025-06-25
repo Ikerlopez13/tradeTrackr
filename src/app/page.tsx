@@ -237,7 +237,7 @@ export default function Home() {
 
     // Verificación de límite de trades
     if (isTrialExpired) {
-      alert('Has alcanzado el límite de 15 trades gratuitos. Actualiza a Premium para continuar.')
+      alert('Has alcanzado el límite de 3 trades gratuitos. Actualiza a Premium para continuar.')
       return
     }
 
@@ -487,7 +487,7 @@ export default function Home() {
   // Verificar límite de trades
   const totalTrades = stats?.total_trades || 0
   const isPremium = profile?.is_premium || false
-  const isTrialExpired = !isPremium && totalTrades >= 15
+  const isTrialExpired = !isPremium && totalTrades >= 3
 
   return (
     <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
@@ -561,11 +561,11 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-6 py-6">
           {/* Alerta de límite alcanzado */}
           {isTrialExpired && (
-            <div className="bg-red-600/20 border border-red-600/30 rounded-lg p-4 mb-6 text-center">
-              <div className="text-2xl mb-2">🚫</div>
-              <h3 className="text-red-400 font-bold text-lg mb-2">Límite de trades alcanzado</h3>
-              <p className="text-red-300 text-sm mb-3">
-                Has usado todos tus 15 trades gratuitos. Actualiza a Premium para continuar registrando trades.
+            <div className="text-center mb-8 bg-red-900/20 border border-red-500/50 rounded-lg p-6">
+              <div className="text-4xl mb-4">🚫</div>
+              <h2 className="text-red-400 font-bold text-xl mb-2">Límite Alcanzado</h2>
+              <p className="text-gray-300 mb-4">
+                Has usado todos tus 3 trades gratuitos. Actualiza a Premium para continuar registrando trades.
               </p>
               <Link
                 href="/profile"

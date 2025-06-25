@@ -50,7 +50,7 @@ export default function PricingPage() {
       period: 'siempre',
       icon: '📊',
       features: [
-        'Hasta 15 trades gratuitos',
+        'Hasta 3 trades gratuitos',
         'Análisis básico de rendimiento',
         'Subida de screenshots',
         'Estadísticas básicas',
@@ -194,7 +194,7 @@ export default function PricingPage() {
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
               Elige el plan perfecto para llevar tu trading al siguiente nivel. 
-              Comienza gratis con 15 trades incluidos, sin tarjeta de crédito.
+              Comienza gratis con 3 trades incluidos, sin tarjeta de crédito.
             </p>
           </div>
 
@@ -274,8 +274,8 @@ export default function PricingPage() {
                 <p className="text-gray-300">Sí, puedes actualizar o degradar tu plan en cualquier momento desde tu perfil. Los cambios se aplicarán en tu próximo ciclo de facturación.</p>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <h3 className="text-lg font-semibold mb-3">¿Los 15 trades gratuitos se renuevan?</h3>
-                <p className="text-gray-300">No, los 15 trades gratuitos son únicos por cuenta. Una vez utilizados, necesitarás actualizar a Pro para continuar registrando trades.</p>
+                <h3 className="text-lg font-semibold mb-3">¿Los 3 trades gratuitos se renuevan?</h3>
+                <p className="text-gray-300">No, los 3 trades gratuitos son únicos por cuenta. Una vez utilizados, necesitarás actualizar a Pro para continuar registrando trades.</p>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
                 <h3 className="text-lg font-semibold mb-3">¿Qué métodos de pago aceptan?</h3>
@@ -300,7 +300,7 @@ export default function PricingPage() {
                   href="/signup"
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 px-8 py-4 rounded-xl font-semibold text-white transition-all duration-200 transform hover:scale-105"
                 >
-                  Comenzar con 15 Trades Gratis
+                  Comenzar con 3 Trades Gratis
                 </Link>
                 <Link
                   href="/"
