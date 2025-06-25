@@ -34,6 +34,8 @@ export default function TradesPage() {
   const [isPremium, setIsPremium] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingTrade, setDeletingTrade] = useState(false)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
@@ -105,21 +107,20 @@ export default function TradesPage() {
 
     setDeletingTrade(true)
     try {
-      const { data, error } = await supabase
-        .from('trades')
-        .delete()
-        .eq('id', selectedTrade.id)
-        .eq('user_id', user.id)
-        .select()
+      // Usar API route segura para eliminar trade
+      const response = await fetch(`/api/trades/${selectedTrade.id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) {
-        console.error('Error deleting trade:', error)
-        alert(`Error al eliminar el trade: ${error.message}`)
-        return
-      }
+      const result = await response.json()
 
-      if (!data || data.length === 0) {
-        alert('No se pudo eliminar el trade. Verifica que sea tuyo.')
+      if (!response.ok) {
+        // Manejar errores específicos del servidor
+        if (result.premium_required) {
+          alert(`🔒 ${result.message}\n\nActualiza a Premium para eliminar trades.`)
+        } else {
+          alert(`Error: ${result.error}`)
+        }
         return
       }
 
@@ -135,9 +136,49 @@ export default function TradesPage() {
       alert('✅ Trade eliminado exitosamente')
     } catch (err) {
       console.error('Error:', err)
-      alert('Error inesperado al eliminar el trade')
+      alert('Error de conexión. Por favor verifica tu internet e inténtalo de nuevo.')
     } finally {
       setDeletingTrade(false)
+    }
+  }
+
+  const bulkDeleteTrades = async () => {
+    if (!user?.id) {
+      alert('Error: Usuario no autenticado')
+      return
+    }
+
+    setBulkDeleting(true)
+    try {
+      // Usar API route segura para eliminar todos los trades
+      const response = await fetch('/api/trades/bulk-delete', {
+        method: 'DELETE',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        // Manejar errores específicos del servidor
+        if (result.premium_required) {
+          alert(`🔒 ${result.message}\n\nEsta función avanzada está disponible solo para usuarios Premium.`)
+        } else {
+          alert(`Error: ${result.error}`)
+        }
+        return
+      }
+
+      // Limpiar la lista local
+      setTrades([])
+      
+      // Cerrar modal
+      setShowBulkDeleteConfirm(false)
+      
+      alert(`✅ ${result.message}\n${result.deleted_count} trades eliminados.`)
+    } catch (err) {
+      console.error('Error:', err)
+      alert('Error de conexión. Por favor verifica tu internet e inténtalo de nuevo.')
+    } finally {
+      setBulkDeleting(false)
     }
   }
 
@@ -252,9 +293,25 @@ export default function TradesPage() {
       <div className="pb-20 md:pb-8">
         <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Título principal */}
-          <h1 className="text-xl md:text-2xl font-bold text-white text-center mb-6">
-            Mis Trades
-          </h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl md:text-2xl font-bold text-white">
+              Mis Trades
+            </h1>
+            
+            {/* Botón de eliminar todos - Solo si hay trades */}
+            {trades && trades.length > 0 && (
+              <button
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                title="Eliminar todos los trades (Premium)"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Eliminar Todos</span>
+              </button>
+            )}
+          </div>
 
           {/* Lista de trades - DISEÑO VERTICAL */}
           <div className="space-y-4">
@@ -631,6 +688,83 @@ export default function TradesPage() {
                     </div>
                   ) : (
                     'Eliminar Trade'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación para eliminar todos los trades */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-60 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg max-w-md w-full border border-red-500/30">
+            {/* Header del modal de confirmación */}
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-red-900/30 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Eliminar Todos los Trades</h3>
+                  <p className="text-sm text-gray-400">⚠️ Esta acción es IRREVERSIBLE</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Contenido del modal de confirmación */}
+            <div className="p-6">
+              <p className="text-gray-300 mb-4">
+                ¿Estás seguro de que quieres eliminar <span className="font-semibold text-white">TODOS tus trades</span>?
+              </p>
+              
+              <div className="bg-red-900/20 rounded-lg p-3 mb-4 border border-red-500/30">
+                <div className="text-sm text-red-300 space-y-1 font-medium">
+                  <div>⚠️ Se eliminarán {trades.length} trades permanentemente</div>
+                  <div>⚠️ Se borrarán todas tus estadísticas</div>
+                  <div>⚠️ No podrás recuperar esta información</div>
+                  <div>⚠️ Esta acción no se puede deshacer</div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xl">⭐</span>
+                  <div className="text-sm">
+                    <div className="text-yellow-400 font-medium">Función Premium Avanzada</div>
+                    <div className="text-yellow-300/80">Solo usuarios Premium pueden eliminar todos los trades</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Botones de acción */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowBulkDeleteConfirm(false)}
+                  className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors"
+                  disabled={bulkDeleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={bulkDeleteTrades}
+                  disabled={bulkDeleting}
+                  className={`flex-1 py-2 px-4 rounded-lg transition-colors font-medium ${
+                    !bulkDeleting
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {bulkDeleting ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Eliminando...</span>
+                    </div>
+                  ) : (
+                    'Eliminar Todos'
                   )}
                 </button>
               </div>

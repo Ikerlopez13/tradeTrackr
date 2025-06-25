@@ -235,7 +235,7 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Verificación de límite de trades
+    // Verificación de límite de trades (frontend check, pero el servidor también valida)
     if (isTrialExpired) {
       alert('Has alcanzado el límite de 3 trades gratuitos. Actualiza a Premium para continuar.')
       return
@@ -247,22 +247,8 @@ export default function Home() {
       return
     }
 
-    // DEBUG: Log current user state
-    console.log('🔍 DEBUG - Current user state:')
-    console.log('   - user object:', user)
-    console.log('   - user.id:', user?.id)
-    console.log('   - user.email:', user?.email)
-    console.log('   - typeof user.id:', typeof user?.id)
-
     if (!user) {
-      console.error('❌ No user found in state')
       alert('Error: No hay usuario autenticado. Por favor recarga la página.')
-      return
-    }
-
-    if (!user.id) {
-      console.error('❌ User ID is null/undefined')
-      alert('Error: ID de usuario no válido. Por favor cierra sesión y vuelve a iniciar.')
       return
     }
 
@@ -296,11 +282,10 @@ export default function Home() {
         }
       }
 
-      console.log('Guardando trade en base de datos...')
+      console.log('Guardando trade usando API segura...')
       
-      // DEBUG: Log the exact data being sent
+      // Usar API route segura en lugar de llamada directa a Supabase
       const tradeData = {
-        user_id: user.id,
         title: formData.title,
         pair: formData.pair,
         timeframe: formData.timeframe,
@@ -317,53 +302,56 @@ export default function Home() {
         screenshot_url: screenshotUrl
       }
       
-      console.log('🔍 DEBUG - Trade data being inserted:')
-      console.log('   - Complete object:', tradeData)
-      console.log('   - user_id specifically:', tradeData.user_id)
-      console.log('   - user_id type:', typeof tradeData.user_id)
-      
-      const { data, error } = await supabase
-        .from('trades')
-        .insert(tradeData)
+      const response = await fetch('/api/trades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tradeData)
+      })
 
-      if (error) {
-        console.error('❌ Database error details:')
-        console.error('   - Error object:', error)
-        console.error('   - Error message:', error.message)
-        console.error('   - Error code:', error.code)
-        console.error('   - Error details:', error.details)
-        console.error('   - Error hint:', error.hint)
-        alert(`Error al guardar el trade: ${error.message}`)
-      } else {
-        console.log('✅ Trade guardado exitosamente:', data)
-        alert('¡Trade guardado exitosamente!')
-        // Reset form
-        setFormData({
-          title: '',
-          timeframe: '',
-          pair: '',
-          session: '',
-          riskReward: '',
-          description: '',
-          confluences: '',
-          pnl_type: '',
-          pnl_value: ''
-        })
-        setSelectedBias('')
-        setSelectedResult('')
-        setConfidence(55)
-        setSelectedFile(null)
-        setPreviewUrl(null)
-        
-        // Recargar datos del usuario para actualizar el contador
-        await loadUserData(user.id)
+      const result = await response.json()
 
-        // Mostrar consejo
-        await showTradeAdvice(tradeData)
+      if (!response.ok) {
+        // Manejar errores específicos del servidor
+        if (result.premium_required) {
+          alert(`🔒 ${result.message}\n\nActualiza a Premium para continuar registrando trades.`)
+        } else {
+          alert(`Error: ${result.error}`)
+        }
+        return
       }
+
+      console.log('✅ Trade guardado exitosamente:', result.trade)
+      alert('¡Trade guardado exitosamente!')
+      
+      // Reset form
+      setFormData({
+        title: '',
+        timeframe: '',
+        pair: '',
+        session: '',
+        riskReward: '',
+        description: '',
+        confluences: '',
+        pnl_type: '',
+        pnl_value: ''
+      })
+      setSelectedBias('')
+      setSelectedResult('')
+      setConfidence(55)
+      setSelectedFile(null)
+      setPreviewUrl(null)
+      
+      // Recargar datos del usuario para actualizar el contador
+      await loadUserData(user.id)
+
+      // Mostrar consejo
+      await showTradeAdvice(tradeData)
+      
     } catch (err) {
       console.error('💥 Unexpected error:', err)
-      alert('Error inesperado')
+      alert('Error de conexión. Por favor verifica tu internet e inténtalo de nuevo.')
     }
   }
 
