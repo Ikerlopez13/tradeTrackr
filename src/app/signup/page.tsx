@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Gift } from 'lucide-react'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
@@ -12,9 +13,27 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [referralCode, setReferralCode] = useState('')
+  const [referralBonus, setReferralBonus] = useState(false)
   
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  useEffect(() => {
+    // Obtener email y código de referido de URL params
+    const emailParam = searchParams.get('email')
+    const refParam = searchParams.get('ref')
+    
+    if (emailParam) {
+      setEmail(decodeURIComponent(emailParam))
+    }
+    
+    if (refParam) {
+      setReferralCode(refParam.toUpperCase())
+      setReferralBonus(true)
+    }
+  }, [searchParams])
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,20 +53,44 @@ export default function Signup() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
 
       if (error) {
         setError(error.message)
-      } else {
-        // Redirigir directamente a la aplicación después del registro exitoso
-        router.push('/')
+        setLoading(false)
+        return
       }
+
+      // Si hay código de referido y el usuario se registró exitosamente
+      if (referralCode && data.user) {
+        try {
+          const response = await fetch('/api/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referral_code: referralCode })
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success) {
+              // Mostrar mensaje de éxito con recompensa
+              setError('')
+            }
+          }
+        } catch (referralError) {
+          console.error('Error procesando referido:', referralError)
+          // No mostrar error al usuario, el registro fue exitoso
+        }
+      }
+
+      // Redirigir directamente a la aplicación después del registro exitoso
+      router.push('/')
+      
     } catch (err) {
       setError('Error inesperado')
-    } finally {
       setLoading(false)
     }
   }
@@ -81,6 +124,19 @@ export default function Signup() {
               Únete a TradeTrackr y comienza tu journey de trading
             </p>
           </div>
+
+          {/* Bonus de referido */}
+          {referralBonus && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-500/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Gift className="w-5 h-5 text-green-400" />
+                <div>
+                  <p className="text-green-400 font-medium text-sm">¡Bonus de Referido!</p>
+                  <p className="text-gray-300 text-xs">Recibirás 3 días Premium gratis al registrarte</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
@@ -123,6 +179,24 @@ export default function Signup() {
                 className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
                 required
               />
+            </div>
+
+            {/* Campo opcional para código de referido */}
+            <div>
+              <label className="block text-white font-medium mb-2 text-sm">
+                Código de Referido (Opcional)
+              </label>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="Ej: ABC123"
+                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
+                maxLength={6}
+              />
+              <p className="text-gray-500 text-xs mt-1">
+                Si tienes un código de referido, obtendrás días Premium gratis
+              </p>
             </div>
 
             {error && (
