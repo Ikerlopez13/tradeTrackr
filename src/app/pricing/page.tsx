@@ -8,6 +8,7 @@ import Image from 'next/image'
 
 export default function PricingPage() {
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -15,9 +16,24 @@ export default function PricingPage() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      
+      if (user) {
+        // Obtener el perfil del usuario para verificar si es Premium
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', user.id)
+          .single()
+        setProfile(profile)
+        
+        // Si el usuario es Premium, redirigir al perfil
+        if (profile?.is_premium) {
+          router.push('/profile')
+        }
+      }
     }
     getUser()
-  }, [])
+  }, [router])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -41,6 +57,8 @@ export default function PricingPage() {
       window.open(stripeUrl, '_blank')
     }
   }
+
+  const isPremium = profile?.is_premium || false
 
   const plans = [
     {
@@ -147,12 +165,14 @@ export default function PricingPage() {
           >
             Mis Trades
           </Link>
-          <Link
-            href="/pricing"
-            className="text-white font-medium hover:text-gray-300 transition-colors"
-          >
-            Pricing
-          </Link>
+          {!isPremium && (
+            <Link
+              href="/pricing"
+              className="text-white font-medium hover:text-gray-300 transition-colors"
+            >
+              Pricing
+            </Link>
+          )}
           <Link
             href="/profile"
             className="text-gray-400 font-medium hover:text-white transition-colors"
@@ -339,16 +359,18 @@ export default function PricingPage() {
             <span className="text-xs font-medium">Trades</span>
           </Link>
 
-          {/* Pricing - Página actual */}
-          <Link
-            href="/pricing"
-            className="flex flex-col items-center py-1 px-2 text-white"
-          >
-            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-            </svg>
-            <span className="text-xs font-medium">Pricing</span>
-          </Link>
+          {/* Pricing - Página actual - Solo para usuarios gratuitos */}
+          {!isPremium && (
+            <Link
+              href="/pricing"
+              className="flex flex-col items-center py-1 px-2 text-white"
+            >
+              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+              <span className="text-xs font-medium">Pricing</span>
+            </Link>
+          )}
 
           {/* Perfil */}
           <Link
