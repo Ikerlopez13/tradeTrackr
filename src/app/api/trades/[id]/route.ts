@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // DELETE - Eliminar trade específico (solo Premium)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
@@ -19,7 +19,7 @@ export async function DELETE(
       )
     }
 
-    const tradeId = params.id
+    const { id: tradeId } = await params
 
     // VALIDACIÓN CRÍTICA: Solo usuarios Premium pueden eliminar trades
     const { data: profile, error: profileError } = await supabase
