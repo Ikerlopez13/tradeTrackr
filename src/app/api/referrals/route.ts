@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
       .eq('active', true)
       .order('tier', { ascending: true });
 
-    // Generar link de referido
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Generar link de referido personalizado
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tradetrackr.pro';
     const referralLink = `${baseUrl}/signup?ref=${profile.referral_code}`;
 
     const dashboardData = {

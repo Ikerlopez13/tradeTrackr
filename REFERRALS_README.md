@@ -80,9 +80,9 @@ setup_referrals.sql                # Script de base de datos
 ### 1. Variables de Entorno
 
 ```env
-NEXT_PUBLIC_APP_URL=http://localhost:3000  # URL base para links
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+NEXT_PUBLIC_APP_URL=https://tradetrackr.pro  # URL base para links
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
 ```
 
 ### 2. Dependencias Instaladas
@@ -234,13 +234,13 @@ graph TD
 ### 2. Variables de Entorno
 ```bash
 # Actualizar URL de producción
-NEXT_PUBLIC_APP_URL=https://tu-dominio.com
+NEXT_PUBLIC_APP_URL=https://tradetrackr.pro
 ```
 
 ### 3. Verificación
 ```bash
 # Verificar que las APIs respondan
-curl https://tu-dominio.com/api/referrals
+curl https://tradetrackr.pro/api/referrals
 ```
 
 ## 🎨 Personalización
