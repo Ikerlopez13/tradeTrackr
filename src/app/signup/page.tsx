@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Gift } from 'lucide-react'
 
-export default function Signup() {
+function SignupForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -225,5 +225,28 @@ export default function Signup() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Signup() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
+        <div className="flex flex-col items-center">
+          <Image
+            src="/logo.jpeg"
+            alt="TradeTrackr Logo"
+            width={80}
+            height={80}
+            priority
+            unoptimized
+            className="rounded-lg animate-scale-cycle"
+          />
+          <p className="text-white mt-4 text-lg font-medium">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   )
 } 
