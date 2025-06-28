@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import TradeAdviceCard, { useTradeAdvice } from '@/components/TradeAdviceCard'
-import CameraCapture from '@/components/CameraCapture'
 import { Camera } from 'lucide-react'
 
 export default function Home() {
@@ -22,7 +21,6 @@ export default function Home() {
   const [stats, setStats] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [showAdvice, setShowAdvice] = useState(false)
-  const [showCamera, setShowCamera] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     timeframe: '',
@@ -420,11 +418,6 @@ export default function Home() {
     }
   }
 
-  const handleCameraCapture = (file: File) => {
-    handleFileSelection(file)
-    setShowCamera(false)
-  }
-
   // Detectar si es móvil
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
@@ -621,6 +614,17 @@ export default function Home() {
                 disabled={isTrialExpired}
               />
               
+              {/* Input separado para cámara móvil */}
+              <input
+                id="camera-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileInput}
+                className="hidden"
+                disabled={isTrialExpired}
+              />
+              
               {previewUrl ? (
                 <div className="relative">
                   <img
@@ -655,7 +659,10 @@ export default function Home() {
                     }
                   </h3>
                   <p className="text-gray-400 text-sm mb-3">
-                    Arrastra una imagen, selecciona de galería o toma una foto
+                    {isMobile 
+                      ? 'Toma una foto, selecciona de galería o arrastra una imagen'
+                      : 'Arrastra una imagen o selecciona desde tu galería'
+                    }
                   </p>
                   
                   {/* Botones de acción */}
@@ -665,7 +672,7 @@ export default function Home() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setShowCamera(true)
+                          document.getElementById('camera-input')?.click()
                         }}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                         disabled={isTrialExpired}
@@ -1228,13 +1235,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      {/* Camera Capture Modal */}
-      <CameraCapture
-        isOpen={showCamera}
-        onCapture={handleCameraCapture}
-        onClose={() => setShowCamera(false)}
-      />
     </div>
   )
 }

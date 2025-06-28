@@ -12,191 +12,115 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  background: #010314;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
   min-height: 100vh;
-  color: white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
 body {
-  background: #010314;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
   background-attachment: fixed;
-  min-height: 100vh;
-  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
 }
 
-/* Space-themed radial gradients matching the logo exactly */
 body::before {
   content: '';
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(147, 51, 234, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 30% 80%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(168, 85, 247, 0.04) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.05) 0%, transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
 
-/* Custom scrollbar */
+/* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(1, 3, 20, 0.8);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, rgba(147, 51, 234, 0.6), rgba(59, 130, 246, 0.6));
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, rgba(147, 51, 234, 0.8), rgba(59, 130, 246, 0.8));
+  background: rgba(255, 255, 255, 0.5);
 }
 
-/* Custom slider styles to match Figma exactly */
+/* Slider de confianza */
 .confidence-slider-container {
   position: relative;
-  height: 20px;
-  margin: 16px 0;
+  width: 100%;
+  margin: 1rem 0;
 }
 
 .confidence-slider {
   -webkit-appearance: none;
   width: 100%;
   height: 8px;
-  border-radius: 5px;
-  background: transparent;
+  border-radius: 4px;
+  background: linear-gradient(to right, 
+    #ef4444 0%, 
+    #f59e0b 25%, 
+    #eab308 50%, 
+    #84cc16 75%, 
+    #22c55e 100%);
   outline: none;
-  position: relative;
-  z-index: 5;
+  opacity: 0.8;
+  transition: opacity 0.2s;
 }
 
 .confidence-slider::-webkit-slider-track {
-  background: transparent !important;
-  border: none;
-  height: 30px;
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: transparent;
+  border-radius: 4px;
 }
 
 .confidence-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  height: 24px;
+  width: 24px;
   border-radius: 50%;
   background: white;
+  border: 3px solid #1f2937;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  border: none;
-  position: relative;
-  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.confidence-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .confidence-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  height: 24px;
+  width: 24px;
   border-radius: 50%;
   background: white;
+  border: 3px solid #1f2937;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  border: none;
-  position: relative;
-  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 }
 
-/* Clean Loading Animation */
-@keyframes scale-cycle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+.confidence-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.animate-scale-cycle {
-  animation: scale-cycle 3.5s ease-in-out infinite;
-}
-
-/* Grid de 14 columnas para el accuracy grid */
-.grid-cols-14 {
-  grid-template-columns: repeat(14, minmax(0, 1fr));
-}
-
-/* Slider simple y discreto */
-.slider-simple {
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.slider-simple::-webkit-slider-track {
-  background: #374151;
-  height: 4px;
-  border-radius: 2px;
-  border: none;
-}
-
-.slider-simple::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #6b7280;
-  cursor: pointer;
-  border: none;
-  transition: background-color 0.2s ease;
-}
-
-.slider-simple::-webkit-slider-thumb:hover {
-  background: #9ca3af;
-}
-
-.slider-simple::-moz-range-track {
-  background: #374151;
-  height: 4px;
-  border-radius: 2px;
-  border: none;
-}
-
-.slider-simple::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #6b7280;
-  cursor: pointer;
-  border: none;
-  transition: background-color 0.2s ease;
-}
-
-.slider-simple::-moz-range-thumb:hover {
-  background: #9ca3af;
-}
-
-/* Utilidades adicionales */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Estilos existentes */
-@layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #010314;
-    color: white;
-  }
-}
-
-/* Animación de escala para el logo */
 @keyframes scale-cycle {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
@@ -206,110 +130,110 @@ body::before {
   animation: scale-cycle 2s ease-in-out infinite;
 }
 
-/* Estilos para la cámara y PWA */
-@layer utilities {
-  /* Safe area para dispositivos con notch */
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
+/* Grid personalizado */
+.grid-cols-14 {
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+}
+
+/* Slider simple */
+.slider-simple {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #374151;
+  outline: none;
+}
+
+.slider-simple::-webkit-slider-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #374151;
+  border-radius: 3px;
+}
+
+.slider-simple::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-simple::-webkit-slider-thumb:hover {
+  background: #2563eb;
+}
+
+.slider-simple::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #374151;
+  border-radius: 3px;
+  border: none;
+}
+
+.slider-simple::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-simple::-moz-range-thumb:hover {
+  background: #2563eb;
+}
+
+/* Utilidades de texto */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Responsive design mejorado */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
   }
-  
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+
+  body {
+    padding: 0;
+    margin: 0;
   }
-  
-  .safe-area-left {
-    padding-left: env(safe-area-inset-left);
-  }
-  
-  .safe-area-right {
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  /* Mejorar interacciones táctiles */
+}
+
+@keyframes scale-cycle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-scale-cycle {
+  animation: scale-cycle 2s ease-in-out infinite;
+}
+
+/* Optimizaciones para móvil */
+@media (max-width: 768px) {
   .touch-manipulation {
     touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
   }
-  
-  /* Prevenir zoom en inputs en iOS */
+
+  /* Mejorar inputs en móvil */
   input[type="text"], 
+  input[type="number"], 
   input[type="email"], 
-  input[type="password"], 
-  textarea, 
-  select {
-    font-size: 16px;
-  }
-  
-  /* Optimizaciones para video de cámara */
-  video {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-  
-  /* Estilos para fullscreen en móviles */
-  @media (max-width: 768px) {
-    .camera-fullscreen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 9999;
-    }
-  }
-  
-  /* Mejorar rendimiento de animaciones */
-  .gpu-accelerated {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    will-change: transform;
-  }
-}
-
-/* Estilos específicos para PWA */
-@media (display-mode: standalone) {
-  body {
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  
-  /* Ocultar scrollbars en modo PWA */
-  ::-webkit-scrollbar {
-    display: none;
-  }
-  
-  html {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-}
-
-/* Mejoras para dispositivos con pantalla táctil */
-@media (hover: none) and (pointer: coarse) {
-  /* Aumentar tamaño de botones para táctil */
-  button {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  /* Mejorar feedback visual en móviles */
-  .touch-feedback:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease;
-  }
-}
-
-/* Estilos para modo landscape en móviles */
-@media (orientation: landscape) and (max-height: 500px) {
-  .camera-controls {
-    padding: 1rem;
-  }
-  
-  .camera-header {
-    padding: 0.5rem 1rem;
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px; /* Previene zoom en iOS */
   }
 }
