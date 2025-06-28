@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import TradeAdviceCard, { useTradeAdvice } from '@/components/TradeAdviceCard'
+import CameraCapture from '@/components/CameraCapture'
+import { Camera } from 'lucide-react'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -20,6 +22,7 @@ export default function Home() {
   const [stats, setStats] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [showAdvice, setShowAdvice] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     timeframe: '',
@@ -417,6 +420,14 @@ export default function Home() {
     }
   }
 
+  const handleCameraCapture = (file: File) => {
+    handleFileSelection(file)
+    setShowCamera(false)
+  }
+
+  // Detectar si es móvil
+  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
   if (loading) {
   return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
@@ -640,13 +651,44 @@ export default function Home() {
                   <h3 className="text-base font-medium text-white mb-1">
                     {isDragging 
                       ? '¡Suelta la imagen aquí!' 
-                      : 'Arrastra aquí la captura de pantalla de tu operación'
+                      : 'Captura o selecciona tu screenshot'
                     }
                   </h3>
-                  <p className="text-gray-400 text-sm">
-                    o haz click para seleccionar desde tu galería
+                  <p className="text-gray-400 text-sm mb-3">
+                    Arrastra una imagen, selecciona de galería o toma una foto
                   </p>
-                  <p className="text-gray-500 text-xs mt-2">
+                  
+                  {/* Botones de acción */}
+                  <div className="flex gap-3 justify-center">
+                    {isMobile && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowCamera(true)
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={isTrialExpired}
+                      >
+                        <Camera size={16} />
+                        Tomar Foto
+                      </button>
+                    )}
+                    
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        document.getElementById('file-input')?.click()
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                      disabled={isTrialExpired}
+                    >
+                      📁 Galería
+                    </button>
+                  </div>
+                  
+                  <p className="text-gray-500 text-xs mt-3">
                     Formatos: JPG, PNG, GIF • Máximo 5MB
                   </p>
                 </div>
@@ -1186,6 +1228,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Camera Capture Modal */}
+      <CameraCapture
+        isOpen={showCamera}
+        onCapture={handleCameraCapture}
+        onClose={() => setShowCamera(false)}
+      />
     </div>
   )
 }

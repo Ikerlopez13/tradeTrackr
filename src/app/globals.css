@@ -182,3 +182,134 @@ body::before {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Estilos existentes */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #010314;
+    color: white;
+  }
+}
+
+/* Animación de escala para el logo */
+@keyframes scale-cycle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-scale-cycle {
+  animation: scale-cycle 2s ease-in-out infinite;
+}
+
+/* Estilos para la cámara y PWA */
+@layer utilities {
+  /* Safe area para dispositivos con notch */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Mejorar interacciones táctiles */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevenir zoom en inputs en iOS */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  textarea, 
+  select {
+    font-size: 16px;
+  }
+  
+  /* Optimizaciones para video de cámara */
+  video {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  /* Estilos para fullscreen en móviles */
+  @media (max-width: 768px) {
+    .camera-fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+    }
+  }
+  
+  /* Mejorar rendimiento de animaciones */
+  .gpu-accelerated {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+}
+
+/* Estilos específicos para PWA */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Ocultar scrollbars en modo PWA */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}
+
+/* Mejoras para dispositivos con pantalla táctil */
+@media (hover: none) and (pointer: coarse) {
+  /* Aumentar tamaño de botones para táctil */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Mejorar feedback visual en móviles */
+  .touch-feedback:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Estilos para modo landscape en móviles */
+@media (orientation: landscape) and (max-height: 500px) {
+  .camera-controls {
+    padding: 1rem;
+  }
+  
+  .camera-header {
+    padding: 0.5rem 1rem;
+  }
+}
