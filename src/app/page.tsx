@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import TradeAdviceCard, { useTradeAdvice } from '@/components/TradeAdviceCard'
-import { Camera } from 'lucide-react'
+import { Camera, Trophy } from 'lucide-react'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -553,6 +553,13 @@ export default function Home() {
             className="text-gray-400 font-medium hover:text-white transition-colors"
           >
             Perfil
+          </Link>
+          <Link
+            href="/leaderboards"
+            className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Leaderboards</span>
           </Link>
           <button
             onClick={handleLogout}
@@ -1148,6 +1155,15 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             <span className="text-xs font-medium">Referidos</span>
+          </Link>
+
+          {/* Leaderboards */}
+          <Link
+            href="/leaderboards"
+            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
+          >
+            <Trophy className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Ranking</span>
           </Link>
 
           {/* Pricing - Solo para usuarios gratuitos */}

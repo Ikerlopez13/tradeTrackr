@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Trophy } from 'lucide-react'
 
 export default function PricingPage() {
   const [user, setUser] = useState<any>(null)
@@ -165,6 +166,12 @@ export default function PricingPage() {
           >
             Mis Trades
           </Link>
+          <Link
+            href="/referrals"
+            className="text-gray-400 font-medium hover:text-white transition-colors flex items-center gap-1"
+          >
+            Referidos
+          </Link>
           {!isPremium && (
             <Link
               href="/pricing"
@@ -178,6 +185,13 @@ export default function PricingPage() {
             className="text-gray-400 font-medium hover:text-white transition-colors"
           >
             Perfil
+          </Link>
+          <Link
+            href="/leaderboards"
+            className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Leaderboards</span>
           </Link>
           {user ? (
             <button
@@ -381,6 +395,15 @@ export default function PricingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span className="text-xs font-medium">Perfil</span>
+          </Link>
+
+          {/* Leaderboards */}
+          <Link
+            href="/leaderboards"
+            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
+          >
+            <Trophy className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Ranking</span>
           </Link>
         </div>
       </nav>
