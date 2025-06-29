@@ -10,6 +10,7 @@ import LeaderboardCard from './LeaderboardCard'
 import GroupCard from './GroupCard'
 import CreateGroupModal from './CreateGroupModal'
 import JoinGroupModal from './JoinGroupModal'
+import GroupTradeFeed from './GroupTradeFeed'
 
 interface LeaderboardEntry {
   id: string
@@ -57,6 +58,7 @@ export default function LeaderboardsView() {
   const [sortBy, setSortBy] = useState<'pnl' | 'balance' | 'winrate' | 'volume'>('pnl')
   const [searchTerm, setSearchTerm] = useState('')
   const [isPremium, setIsPremium] = useState(false)
+  const [groupViewTab, setGroupViewTab] = useState<'leaderboard' | 'feed'>('leaderboard')
 
   const supabase = createClient()
   const router = useRouter()
@@ -486,41 +488,87 @@ export default function LeaderboardsView() {
                 </div>
               ) : (
                 <>
-                  {/* Selector de grupo */}
-                  <div className="mb-4">
-                    <select
-                      value={selectedGroup || ''}
-                      onChange={(e) => setSelectedGroup(e.target.value)}
-                      className="w-full bg-gray-800/60 border border-gray-700 text-white rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {userGroups.map(group => (
-                        <option key={group.id} value={group.id}>
-                          {group.name} ({group.member_count} miembros)
-                        </option>
-                      ))}
-                    </select>
+                  {/* Lista de grupos como tarjetas */}
+                  <div className="space-y-4 mb-6">
+                    <h3 className="text-white font-medium text-lg flex items-center space-x-2">
+                      <Users className="w-5 h-5" />
+                      <span>Mis Grupos</span>
+                    </h3>
+                    
+                    {userGroups.map(group => (
+                      <GroupCard
+                        key={group.id}
+                        group={group}
+                        isSelected={selectedGroup === group.id}
+                        onClick={() => setSelectedGroup(group.id)}
+                        currentUserId={currentUser?.id}
+                        onLeaveGroup={handleLeaveGroup}
+                      />
+                    ))}
                   </div>
 
-                  {/* Leaderboard del grupo */}
+                  {/* Leaderboard del grupo seleccionado */}
                   {selectedGroup && (
                     <div className="space-y-4">
-                      {filteredGroupLeaderboard.length > 0 ? (
-                        filteredGroupLeaderboard.map((entry, index) => (
-                          <LeaderboardCard
-                            key={entry.id}
-                            entry={entry}
-                            rank={index + 1}
-                            isCurrentUser={entry.id === currentUser?.id}
-                            showGroupRank={true}
-                          />
-                        ))
-                      ) : (
-                        <div className="text-center py-8">
-                          <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                          <p className="text-gray-400">
-                            No hay datos de trading en este grupo aún
-                          </p>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-white font-medium text-lg">
+                          {userGroups.find(g => g.id === selectedGroup)?.name}
+                        </h3>
+                      </div>
+                      
+                      {/* Tabs para el grupo */}
+                      <div className="flex space-x-1 bg-gray-800/50 rounded-lg p-1">
+                        <button
+                          onClick={() => setGroupViewTab('leaderboard')}
+                          className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            groupViewTab === 'leaderboard'
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                          }`}
+                        >
+                          <Trophy className="w-4 h-4" />
+                          <span>Ranking</span>
+                        </button>
+                        <button
+                          onClick={() => setGroupViewTab('feed')}
+                          className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            groupViewTab === 'feed'
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                          }`}
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                          <span>Feed</span>
+                        </button>
+                      </div>
+
+                      {/* Contenido de tabs */}
+                      {groupViewTab === 'leaderboard' ? (
+                        <div className="space-y-4">
+                          {filteredGroupLeaderboard.length > 0 ? (
+                            filteredGroupLeaderboard.map((entry, index) => (
+                              <LeaderboardCard
+                                key={entry.id}
+                                entry={entry}
+                                rank={index + 1}
+                                isCurrentUser={entry.id === currentUser?.id}
+                                showGroupRank={true}
+                              />
+                            ))
+                          ) : (
+                            <div className="text-center py-8">
+                              <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                              <p className="text-gray-400">
+                                No hay datos de trading en este grupo aún
+                              </p>
+                            </div>
+                          )}
                         </div>
+                      ) : (
+                        <GroupTradeFeed 
+                          groupId={selectedGroup} 
+                          currentUserId={currentUser?.id}
+                        />
                       )}
                     </div>
                   )}

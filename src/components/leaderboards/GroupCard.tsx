@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Users, Calendar, Crown, Copy, MoreVertical, LogOut, Settings, AlertTriangle } from 'lucide-react'
+import { Users, Calendar, Crown, Copy, MoreVertical, LogOut, Settings, AlertTriangle, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Group {
@@ -29,12 +29,14 @@ export default function GroupCard({ group, isSelected, onClick, currentUserId, o
   const [showMenu, setShowMenu] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
+  const [copied, setCopied] = useState(false)
   const supabase = createClient()
 
   const copyInviteCode = (e: React.MouseEvent) => {
     e.stopPropagation()
     navigator.clipboard.writeText(group.invite_code)
-    // Aquí podrías agregar una notificación de éxito
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleMenuClick = (e: React.MouseEvent) => {
@@ -194,11 +196,26 @@ export default function GroupCard({ group, isSelected, onClick, currentUserId, o
 
           <button
             onClick={copyInviteCode}
-            className="flex items-center space-x-1 text-blue-400 hover:text-blue-300 transition-colors"
-            title="Copiar código de invitación"
+            className={`flex items-center space-x-1 transition-colors ${
+              copied 
+                ? 'text-green-400 hover:text-green-300' 
+                : 'text-blue-400 hover:text-blue-300'
+            }`}
+            title={copied ? 'Código copiado!' : 'Copiar código de invitación'}
           >
-            <Copy className="w-4 h-4" />
-            <span className="font-mono text-xs">{group.invite_code}</span>
+            {copied ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span className="font-mono text-xs">¡Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span className="font-mono text-xs bg-gray-700/50 px-2 py-1 rounded">
+                  {group.invite_code}
+                </span>
+              </>
+            )}
           </button>
         </div>
 
@@ -211,6 +228,51 @@ export default function GroupCard({ group, isSelected, onClick, currentUserId, o
             ></div>
           </div>
         </div>
+
+        {/* Información expandida cuando está seleccionado */}
+        {isSelected && (
+          <div className="mt-4 pt-4 border-t border-gray-700 space-y-3">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-400">Código de invitación:</span>
+                <div className="text-white font-mono bg-gray-900/50 px-2 py-1 rounded mt-1">
+                  {group.invite_code}
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400">Tipo:</span>
+                <div className="text-white mt-1">
+                  {group.is_public ? 'Público' : 'Privado'}
+                </div>
+              </div>
+            </div>
+            
+            {group.description && (
+              <div>
+                <span className="text-gray-400 text-sm">Descripción:</span>
+                <p className="text-white text-sm mt-1 bg-gray-900/30 p-2 rounded">
+                  {group.description}
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">
+                Creado el {new Date(group.created_at).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </span>
+              {isCreator && (
+                <div className="flex items-center space-x-1 text-yellow-400">
+                  <Crown className="w-3 h-3" />
+                  <span className="text-xs">Administrador</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
