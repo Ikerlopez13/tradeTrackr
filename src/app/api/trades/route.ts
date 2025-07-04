@@ -72,7 +72,8 @@ export async function POST(request: NextRequest) {
       pnl_percentage,
       pnl_pips,
       pnl_money,
-      screenshot_url
+      screenshot_url,
+      is_public
     } = body
 
     // Validaciones básicas
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
         pnl_percentage,
         pnl_pips,
         pnl_money,
-        screenshot_url
+        screenshot_url,
+        is_public
       })
       .select()
       .single()

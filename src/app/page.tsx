@@ -30,7 +30,8 @@ export default function Home() {
     description: '',
     confluences: '',
     pnl_type: '',
-    pnl_value: ''
+    pnl_value: '',
+    is_public: false
   })
   
   const router = useRouter()
@@ -279,12 +280,46 @@ export default function Home() {
             adjustedValue = -value
           }
           
+          // 🚀 NUEVA FUNCIONALIDAD: Conversión automática entre tipos de P&L
           if (formData.pnl_type === 'percentage') {
             pnl_percentage = adjustedValue
+            
+            // Calcular automáticamente pips y dinero basado en el porcentaje
+            const accountBalance = profile?.account_balance || 1000
+            
+            // Calcular dinero: balance * (porcentaje / 100)
+            pnl_money = accountBalance * (adjustedValue / 100)
+            
+            // Calcular pips basado en el par de divisas
+            // Diferentes pares tienen diferentes valores por pip
+            const pipValue = getPipValue(formData.pair, accountBalance)
+            if (pipValue > 0) {
+              pnl_pips = Math.round((pnl_money / pipValue) * 10) / 10 // Redondear a 1 decimal
+            }
+            
           } else if (formData.pnl_type === 'pips') {
             pnl_pips = adjustedValue
+            
+            // Calcular dinero y porcentaje basado en pips
+            const accountBalance = profile?.account_balance || 1000
+            const pipValue = getPipValue(formData.pair, accountBalance)
+            
+            if (pipValue > 0) {
+              pnl_money = adjustedValue * pipValue
+              pnl_percentage = (pnl_money / accountBalance) * 100
+            }
+            
           } else if (formData.pnl_type === 'money') {
             pnl_money = adjustedValue
+            
+            // Calcular porcentaje y pips basado en dinero
+            const accountBalance = profile?.account_balance || 1000
+            pnl_percentage = (adjustedValue / accountBalance) * 100
+            
+            const pipValue = getPipValue(formData.pair, accountBalance)
+            if (pipValue > 0) {
+              pnl_pips = Math.round((adjustedValue / pipValue) * 10) / 10 // Redondear a 1 decimal
+            }
           }
         }
       }
@@ -342,7 +377,8 @@ export default function Home() {
         description: '',
         confluences: '',
         pnl_type: '',
-        pnl_value: ''
+        pnl_value: '',
+        is_public: false
       })
       setSelectedBias('')
       setSelectedResult('')
@@ -359,6 +395,51 @@ export default function Home() {
     } catch (err) {
       console.error('💥 Unexpected error:', err)
       alert('Error de conexión. Por favor verifica tu internet e inténtalo de nuevo.')
+    }
+  }
+
+  // 🚀 NUEVA FUNCIÓN: Calcular valor por pip según el par de divisas
+  const getPipValue = (pair: string, accountBalance: number): number => {
+    if (!pair) return 0
+    
+    // Tamaño de lote estándar (ajustable según el balance)
+    // Para cuentas pequeñas, usamos mini lotes o micro lotes
+    const lotSize = accountBalance >= 10000 ? 100000 : // Lote estándar
+                   accountBalance >= 1000 ? 10000 : // Mini lote
+                   1000 // Micro lote
+    
+    // Valores aproximados por pip para diferentes tipos de pares
+    // Estos son valores estimados - en trading real dependen del broker y condiciones de mercado
+    
+    // Pares mayores (USD como divisa cotizada)
+    const majorPairs = ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDCAD', 'USDCHF', 'USDJPY']
+    
+    // Pares con JPY (valor diferente por la cotización)
+    const jpyPairs = ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY']
+    
+    // Metales preciosos
+    const metals = ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD']
+    
+    // Índices (valores más altos)
+    const indices = ['US30', 'NAS100', 'SPX500', 'GER40', 'UK100', 'JPN225']
+    
+    if (jpyPairs.includes(pair)) {
+      // Para pares JPY, 1 pip = 0.01, valor aproximado
+      return (lotSize * 0.01) / 100 // Ajustado para mini/micro lotes
+    } else if (majorPairs.includes(pair)) {
+      // Para pares mayores, 1 pip = 0.0001
+      return (lotSize * 0.0001) / 10 // Ajustado para mini/micro lotes
+    } else if (metals.includes(pair)) {
+      // Para metales, valores más altos
+      if (pair === 'XAUUSD') return lotSize * 0.01 / 100 // Oro
+      if (pair === 'XAGUSD') return lotSize * 0.001 / 100 // Plata
+      return lotSize * 0.001 / 100
+    } else if (indices.includes(pair)) {
+      // Para índices, valores más altos
+      return lotSize * 0.1 / 100
+    } else {
+      // Valor por defecto para otros pares
+      return (lotSize * 0.0001) / 10
     }
   }
 
@@ -534,6 +615,12 @@ export default function Home() {
             Mis Trades
           </Link>
           <Link
+            href="/feed"
+            className="text-gray-400 font-medium hover:text-white transition-colors"
+          >
+            Feed
+          </Link>
+          <Link
             href="/referrals"
             className="text-gray-400 font-medium hover:text-white transition-colors flex items-center gap-1"
           >
@@ -577,562 +664,687 @@ export default function Home() {
       </nav>
 
       {/* Contenido principal */}
-      <div className="pb-20 md:pb-8">
-        <div className="max-w-2xl mx-auto px-6 py-6">
-          {/* Alerta de límite alcanzado */}
-          {isTrialExpired && (
-            <div className="text-center mb-8 bg-red-900/20 border border-red-500/50 rounded-lg p-6">
-              <div className="text-4xl mb-4">🚫</div>
-              <h2 className="text-red-400 font-bold text-xl mb-2">Límite Alcanzado</h2>
-              <p className="text-gray-300 mb-4">
-                Has usado todos tus 3 trades gratuitos. Actualiza a Premium para continuar registrando trades.
-              </p>
-              <Link
-                href="/profile"
-                className="inline-block bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header con estadísticas */}
+        <div className="pb-20 md:pb-8">
+          <div className="max-w-2xl mx-auto px-6 py-6">
+            {/* Alerta de límite alcanzado */}
+            {isTrialExpired && (
+              <div className="text-center mb-8 bg-red-900/20 border border-red-500/50 rounded-lg p-6">
+                <div className="text-4xl mb-4">🚫</div>
+                <h2 className="text-red-400 font-bold text-xl mb-2">Límite Alcanzado</h2>
+                <p className="text-gray-300 mb-4">
+                  Has usado todos tus 3 trades gratuitos. Actualiza a Premium para continuar registrando trades.
+                </p>
+                <Link
+                  href="/profile"
+                  className="inline-block bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                  Ver Premium
+                </Link>
+              </div>
+            )}
+
+            {/* Título principal */}
+            <h1 className="text-xl md:text-2xl font-bold text-white text-center mb-6">
+              {isTrialExpired ? 'Formulario bloqueado' : 'Registrar nuevo trade'}
+            </h1>
+
+            {/* Formulario - Deshabilitado si se alcanzó el límite */}
+            <form onSubmit={handleSubmit} className={`space-y-5 ${isTrialExpired ? 'opacity-50 pointer-events-none' : ''}`}>
+              {/* Área de screenshot mejorada */}
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center bg-black/20 backdrop-blur-sm transition-all duration-300 cursor-pointer relative ${
+                  isDragging 
+                    ? 'border-blue-500 bg-blue-500/10 scale-105' 
+                    : selectedFile 
+                      ? 'border-green-500 bg-green-500/10' 
+                      : 'border-gray-600 hover:border-gray-500'
+                }`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => !isTrialExpired && document.getElementById('file-input')?.click()}
               >
-                Ver Premium
-              </Link>
-            </div>
-          )}
-
-          {/* Título principal */}
-          <h1 className="text-xl md:text-2xl font-bold text-white text-center mb-6">
-            {isTrialExpired ? 'Formulario bloqueado' : 'Registrar nuevo trade'}
-          </h1>
-
-          {/* Formulario - Deshabilitado si se alcanzó el límite */}
-          <form onSubmit={handleSubmit} className={`space-y-5 ${isTrialExpired ? 'opacity-50 pointer-events-none' : ''}`}>
-            {/* Área de screenshot mejorada */}
-            <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center bg-black/20 backdrop-blur-sm transition-all duration-300 cursor-pointer relative ${
-                isDragging 
-                  ? 'border-blue-500 bg-blue-500/10 scale-105' 
-                  : selectedFile 
-                    ? 'border-green-500 bg-green-500/10' 
-                    : 'border-gray-600 hover:border-gray-500'
-              }`}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onClick={() => !isTrialExpired && document.getElementById('file-input')?.click()}
-            >
-              <input
-                id="file-input"
-                type="file"
-                accept="image/*"
-                onChange={handleFileInput}
-                className="hidden"
-                disabled={isTrialExpired}
-              />
-              
-              {/* Input separado para cámara móvil */}
-              <input
-                id="camera-input"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileInput}
-                className="hidden"
-                disabled={isTrialExpired}
-              />
-              
-              {previewUrl ? (
-                <div className="relative">
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-w-full max-h-48 mx-auto rounded-lg shadow-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeFile()
-                    }}
-                    className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-700 transition-colors"
-                    disabled={isTrialExpired}
-                  >
-                    ×
-                  </button>
-                  <div className="mt-3 text-sm text-gray-300">
-                    {selectedFile?.name}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className={`text-4xl mb-3 transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
-                    {isDragging ? '📥' : '📸'}
-                  </div>
-                  <h3 className="text-base font-medium text-white mb-1">
-                    {isDragging 
-                      ? '¡Suelta la imagen aquí!' 
-                      : 'Captura o selecciona tu screenshot'
-                    }
-                  </h3>
-                  <p className="text-gray-400 text-sm mb-3">
-                    {isMobile 
-                      ? 'Toma una foto, selecciona de galería o arrastra una imagen'
-                      : 'Arrastra una imagen o selecciona desde tu galería'
-                    }
-                  </p>
-                  
-                  {/* Botones de acción */}
-                  <div className="flex gap-3 justify-center">
-                    {isMobile && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          document.getElementById('camera-input')?.click()
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                        disabled={isTrialExpired}
-                      >
-                        <Camera size={16} />
-                        Tomar Foto
-                      </button>
-                    )}
-                    
+                <input
+                  id="file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInput}
+                  className="hidden"
+                  disabled={isTrialExpired}
+                />
+                
+                {/* Input separado para cámara móvil */}
+                <input
+                  id="camera-input"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileInput}
+                  className="hidden"
+                  disabled={isTrialExpired}
+                />
+                
+                {previewUrl ? (
+                  <div className="relative">
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="max-w-full max-h-48 mx-auto rounded-lg shadow-lg"
+                    />
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        document.getElementById('file-input')?.click()
+                        removeFile()
                       }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                      className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-700 transition-colors"
                       disabled={isTrialExpired}
                     >
-                      📁 Galería
+                      ×
+                    </button>
+                    <div className="mt-3 text-sm text-gray-300">
+                      {selectedFile?.name}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className={`text-4xl mb-3 transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
+                      {isDragging ? '📥' : '📸'}
+                    </div>
+                    <h3 className="text-base font-medium text-white mb-1">
+                      {isDragging 
+                        ? '¡Suelta la imagen aquí!' 
+                        : 'Captura o selecciona tu screenshot'
+                      }
+                    </h3>
+                    <p className="text-gray-400 text-sm mb-3">
+                      {isMobile 
+                        ? 'Toma una foto, selecciona de galería o arrastra una imagen'
+                        : 'Arrastra una imagen o selecciona desde tu galería'
+                      }
+                    </p>
+                    
+                    {/* Botones de acción */}
+                    <div className="flex gap-3 justify-center">
+                      {isMobile && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            document.getElementById('camera-input')?.click()
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          disabled={isTrialExpired}
+                        >
+                          <Camera size={16} />
+                          Tomar Foto
+                        </button>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          document.getElementById('file-input')?.click()
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                        disabled={isTrialExpired}
+                      >
+                        📁 Galería
+                      </button>
+                    </div>
+                    
+                    <p className="text-gray-500 text-xs mt-3">
+                      Formatos: JPG, PNG, GIF • Máximo 5MB
+                    </p>
+                  </div>
+                )}
+                
+                {uploadLoading && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                    <div className="text-white text-sm">Subiendo imagen...</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Título del trade */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-base">
+                  Título del trade
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Ej: Setup EUR/USD en zona de oferta"
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
+                  required
+                  disabled={isTrialExpired}
+                />
+              </div>
+
+              {/* Fila de campos: Temporalidad y Par */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-white font-medium mb-2 text-base">
+                    Temporalidad
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="timeframe"
+                      value={formData.timeframe}
+                      onChange={handleInputChange}
+                      className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
+                      required
+                      disabled={isTrialExpired}
+                    >
+                      <option value="" className="text-gray-400">Selecciona timeframe</option>
+                      <option value="1m">1 minuto</option>
+                      <option value="5m">5 minutos</option>
+                      <option value="15m">15 minutos</option>
+                      <option value="30m">30 minutos</option>
+                      <option value="1h">1 hora</option>
+                      <option value="4h">4 horas</option>
+                      <option value="1d">1 día</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-white font-medium mb-2 text-base">
+                    Par
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="pair"
+                      value={formData.pair}
+                      onChange={handleInputChange}
+                      className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
+                      required
+                      disabled={isTrialExpired}
+                    >
+                      <option value="" className="text-gray-400">Selecciona par</option>
+                      <optgroup label="Forex Mayores">
+                        <option value="EURUSD">EUR/USD</option>
+                        <option value="GBPUSD">GBP/USD</option>
+                        <option value="USDJPY">USD/JPY</option>
+                        <option value="AUDUSD">AUD/USD</option>
+                        <option value="USDCAD">USD/CAD</option>
+                        <option value="USDCHF">USD/CHF</option>
+                        <option value="NZDUSD">NZD/USD</option>
+                      </optgroup>
+                      <optgroup label="Forex Menores">
+                        <option value="EURGBP">EUR/GBP</option>
+                        <option value="EURJPY">EUR/JPY</option>
+                        <option value="GBPJPY">GBP/JPY</option>
+                        <option value="AUDJPY">AUD/JPY</option>
+                        <option value="CADJPY">CAD/JPY</option>
+                        <option value="CHFJPY">CHF/JPY</option>
+                      </optgroup>
+                      <optgroup label="Metales Preciosos">
+                        <option value="XAUUSD">XAU/USD (Oro)</option>
+                        <option value="XAGUSD">XAG/USD (Plata)</option>
+                        <option value="XPTUSD">XPT/USD (Platino)</option>
+                        <option value="XPDUSD">XPD/USD (Paladio)</option>
+                      </optgroup>
+                      <optgroup label="Índices">
+                        <option value="US30">US30 (Dow Jones)</option>
+                        <option value="NAS100">NAS100 (Nasdaq)</option>
+                        <option value="SPX500">SPX500 (S&P 500)</option>
+                        <option value="GER40">GER40 (DAX)</option>
+                        <option value="UK100">UK100 (FTSE)</option>
+                        <option value="JPN225">JPN225 (Nikkei)</option>
+                      </optgroup>
+                      <optgroup label="Criptomonedas">
+                        <option value="BTCUSD">BTC/USD</option>
+                        <option value="ETHUSD">ETH/USD</option>
+                        <option value="BNBUSD">BNB/USD</option>
+                        <option value="ADAUSD">ADA/USD</option>
+                      </optgroup>
+                      <optgroup label="Commodities">
+                        <option value="USOIL">Petróleo US</option>
+                        <option value="UKOIL">Petróleo UK</option>
+                        <option value="NATGAS">Gas Natural</option>
+                      </optgroup>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fila de campos: Sesión y Risk:Reward */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-white font-medium mb-2 text-base">
+                    Sesión
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="session"
+                      value={formData.session}
+                      onChange={handleInputChange}
+                      className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
+                      disabled={isTrialExpired}
+                    >
+                      <option value="" className="text-gray-400">Selecciona sesión</option>
+                      <option value="asian">Asiática</option>
+                      <option value="london">Londres</option>
+                      <option value="newyork">Nueva York</option>
+                      <option value="overlap">Solapamiento</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-white font-medium mb-2 text-base">
+                    Risk:Reward
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="riskReward"
+                      value={formData.riskReward}
+                      onChange={handleInputChange}
+                      className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
+                      required
+                      disabled={isTrialExpired}
+                    >
+                      <option value="" className="text-gray-400">Selecciona ratio</option>
+                      <option value="1:1">1:1</option>
+                      <option value="1:2">1:2</option>
+                      <option value="1:3">1:3</option>
+                      <option value="1:4">1:4</option>
+                      <option value="1:5">1:5</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bias del mercado */}
+              <div>
+                <label className="block text-white font-medium mb-3 text-base">
+                  Bias del mercado
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setSelectedBias('alcista')}
+                    className={`p-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedBias === 'alcista'
+                        ? 'bg-green-600 text-white border border-green-500'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    Alcista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setSelectedBias('bajista')}
+                    className={`p-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedBias === 'bajista'
+                        ? 'bg-red-600 text-white border border-red-500'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    Bajista
+                  </button>
+                </div>
+              </div>
+
+              {/* Resultado */}
+              <div>
+                <label className="block text-white font-medium mb-3 text-base">
+                  Resultado
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setSelectedResult('win')}
+                    className={`p-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedResult === 'win'
+                        ? 'bg-green-600 text-white border border-green-500'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    Win
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setSelectedResult('loss')}
+                    className={`p-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedResult === 'loss'
+                        ? 'bg-red-600 text-white border border-red-500'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    Loss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setSelectedResult('be')}
+                    className={`p-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedResult === 'be'
+                        ? 'bg-yellow-600 text-white border border-yellow-500'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    BE
+                  </button>
+                </div>
+              </div>
+
+              {/* Descripción del trade */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-base">
+                  Descripción del trade
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Describe tu análisis, setup y gestión del trade..."
+                  rows={4}
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none text-sm"
+                  disabled={isTrialExpired}
+                />
+              </div>
+
+              {/* Confluencias */}
+              <div>
+                <label className="block text-white font-medium mb-2 text-base">
+                  Confluencias
+                </label>
+                <textarea
+                  name="confluences"
+                  value={formData.confluences}
+                  onChange={handleInputChange}
+                  placeholder="¿Qué te hizo tomar este trade? Ej: Soporte/Resistencia, Fibonacci, Patrones, etc..."
+                  rows={3}
+                  className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none text-sm"
+                  disabled={isTrialExpired}
+                />
+              </div>
+
+              {/* Resultado financiero - Opcional y flexible */}
+              <div>
+                <label className="block text-white font-medium mb-3 text-base">
+                  Resultado financiero (opcional)
+                </label>
+                
+                {/* Selector de tipo de P&L */}
+                <div className="mb-3">
+                  <div className="relative">
+                    <select
+                      name="pnl_type"
+                      value={formData.pnl_type}
+                      onChange={handleInputChange}
+                      className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
+                      disabled={isTrialExpired}
+                    >
+                      <option value="" className="text-gray-400">Selecciona tipo de resultado</option>
+                      <option value="percentage">Porcentaje (%)</option>
+                      <option value="pips">Pips</option>
+                      <option value="money">Dinero ($)</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campo de valor solo si se seleccionó un tipo */}
+                {formData.pnl_type && (
+                  <div>
+                    <input
+                      type="number"
+                      name="pnl_value"
+                      value={formData.pnl_value}
+                      onChange={handleInputChange}
+                      placeholder={
+                        formData.pnl_type === 'percentage' ? 'Ej: +2,5 o -1,8' :
+                        formData.pnl_type === 'pips' ? 'Ej: +50 o -25' :
+                        'Ej: +150 o -75'
+                      }
+                      step={formData.pnl_type === 'percentage' ? '0.01' : formData.pnl_type === 'pips' ? '0.1' : '0.01'}
+                      className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
+                      disabled={isTrialExpired}
+                    />
+                    <div className="text-gray-400 text-xs mt-1">
+                      {formData.pnl_type === 'percentage' && 'Ingresa el porcentaje de ganancia/pérdida (ej: 2,5 para +2,5%)'}
+                      {formData.pnl_type === 'pips' && 'Ingresa los pips ganados/perdidos (ej: 50 para +50 pips)'}
+                      {formData.pnl_type === 'money' && 'Ingresa la cantidad en dinero ganada/perdida (ej: 150 para +$150)'}
+                    </div>
+                    
+                    {/* 🚀 NUEVA FUNCIONALIDAD: Vista previa de conversión automática */}
+                    {formData.pnl_value && formData.pair && (
+                      <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                        <div className="flex items-center mb-2">
+                          <svg className="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-blue-400 text-xs font-medium">Conversión automática</span>
+                        </div>
+                        
+                        {(() => {
+                          const value = parseFloat(formData.pnl_value)
+                          if (isNaN(value)) return null
+                          
+                          let adjustedValue = value
+                          if (selectedResult === 'loss' && value > 0) {
+                            adjustedValue = -value
+                          }
+                          
+                          const accountBalance = profile?.account_balance || 1000
+                          const pipValue = getPipValue(formData.pair, accountBalance)
+                          
+                          let calculatedPercentage = null
+                          let calculatedPips = null
+                          let calculatedMoney = null
+                          
+                          if (formData.pnl_type === 'percentage') {
+                            calculatedPercentage = adjustedValue
+                            calculatedMoney = accountBalance * (adjustedValue / 100)
+                            if (pipValue > 0) {
+                              calculatedPips = Math.round((calculatedMoney / pipValue) * 10) / 10
+                            }
+                          } else if (formData.pnl_type === 'pips') {
+                            calculatedPips = adjustedValue
+                            if (pipValue > 0) {
+                              calculatedMoney = adjustedValue * pipValue
+                              calculatedPercentage = (calculatedMoney / accountBalance) * 100
+                            }
+                          } else if (formData.pnl_type === 'money') {
+                            calculatedMoney = adjustedValue
+                            calculatedPercentage = (adjustedValue / accountBalance) * 100
+                            if (pipValue > 0) {
+                              calculatedPips = Math.round((adjustedValue / pipValue) * 10) / 10
+                            }
+                          }
+                          
+                          return (
+                            <div className="grid grid-cols-3 gap-3 text-xs">
+                              <div className="text-center">
+                                <div className={`font-medium ${calculatedPercentage !== null ? 'text-white' : 'text-gray-500'}`}>
+                                  {calculatedPercentage !== null ? 
+                                    `${calculatedPercentage > 0 ? '+' : ''}${calculatedPercentage.toFixed(2)}%` : 
+                                    '-%'
+                                  }
+                                </div>
+                                <div className="text-gray-400">Porcentaje</div>
+                              </div>
+                              <div className="text-center">
+                                <div className={`font-medium ${calculatedPips !== null ? 'text-white' : 'text-gray-500'}`}>
+                                  {calculatedPips !== null ? 
+                                    `${calculatedPips > 0 ? '+' : ''}${calculatedPips.toFixed(1)}` : 
+                                    '-'
+                                  }
+                                </div>
+                                <div className="text-gray-400">Pips</div>
+                              </div>
+                              <div className="text-center">
+                                <div className={`font-medium ${calculatedMoney !== null ? 'text-white' : 'text-gray-500'}`}>
+                                  {calculatedMoney !== null ? 
+                                    `${calculatedMoney > 0 ? '+' : ''}$${Math.abs(calculatedMoney).toFixed(2)}` : 
+                                    '-$'
+                                  }
+                                </div>
+                                <div className="text-gray-400">Dinero</div>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                        
+                        <div className="text-blue-300 text-xs mt-2">
+                          💡 Los otros valores se calcularán automáticamente basándose en tu balance de ${(profile?.account_balance || 1000).toLocaleString()} y el par {formData.pair}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Indicador visual cuando se selecciona Loss */}
+                    {selectedResult === 'loss' && formData.pnl_value && parseFloat(formData.pnl_value) > 0 && (
+                      <div className="text-orange-400 text-xs mt-1 flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        ℹ️ Como seleccionaste "Loss", el valor se convertirá automáticamente a negativo
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Selector de sentimiento - Versión con botones fijos */}
+              <div>
+                <label className="block text-white font-medium mb-3 text-base">
+                  ¿Cómo te sentiste con el trade?
+                </label>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setConfidence(25)}
+                    className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
+                      confidence <= 33
+                        ? 'bg-red-600/20 text-red-400 border border-red-500/50'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    <span className="text-2xl">😞</span>
+                    <span>Mal</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setConfidence(55)}
+                    className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
+                      confidence > 33 && confidence <= 66
+                        ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/50'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    <span className="text-2xl">🤔</span>
+                    <span>Regular</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => !isTrialExpired && setConfidence(85)}
+                    className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
+                      confidence > 66
+                        ? 'bg-green-600/20 text-green-400 border border-green-500/50'
+                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                    }`}
+                    disabled={isTrialExpired}
+                  >
+                    <span className="text-2xl">😊</span>
+                    <span>Genial</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Toggle para compartir públicamente */}
+              <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium mb-1">Compartir en el Feed Público</h3>
+                    <p className="text-gray-400 text-sm">
+                      Permite que otros traders vean tu trade en el feed público. Tu nombre de usuario será visible.
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    <button
+                      type="button"
+                      onClick={() => !isTrialExpired && setFormData(prev => ({ ...prev, is_public: !prev.is_public }))}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        formData.is_public ? 'bg-blue-600' : 'bg-gray-600'
+                      }`}
+                      disabled={isTrialExpired}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.is_public ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
                     </button>
                   </div>
-                  
-                  <p className="text-gray-500 text-xs mt-3">
-                    Formatos: JPG, PNG, GIF • Máximo 5MB
-                  </p>
                 </div>
-              )}
-              
-              {uploadLoading && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-                  <div className="text-white text-sm">Subiendo imagen...</div>
-                </div>
-              )}
-            </div>
-
-            {/* Título del trade */}
-            <div>
-              <label className="block text-white font-medium mb-2 text-base">
-                Título del trade
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Ej: Setup EUR/USD en zona de oferta"
-                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
-                required
-                disabled={isTrialExpired}
-              />
-            </div>
-
-            {/* Fila de campos: Temporalidad y Par */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-white font-medium mb-2 text-base">
-                  Temporalidad
-                </label>
-                <div className="relative">
-                  <select
-                    name="timeframe"
-                    value={formData.timeframe}
-                    onChange={handleInputChange}
-                    className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
-                    required
-                    disabled={isTrialExpired}
-                  >
-                    <option value="" className="text-gray-400">Selecciona timeframe</option>
-                    <option value="1m">1 minuto</option>
-                    <option value="5m">5 minutos</option>
-                    <option value="15m">15 minutos</option>
-                    <option value="30m">30 minutos</option>
-                    <option value="1h">1 hora</option>
-                    <option value="4h">4 horas</option>
-                    <option value="1d">1 día</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                {formData.is_public && (
+                  <div className="mt-3 flex items-center text-blue-400 text-sm">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />
                     </svg>
+                    Tu trade será visible públicamente en el feed
                   </div>
-                </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-white font-medium mb-2 text-base">
-                  Par
-                </label>
-                <div className="relative">
-                  <select
-                    name="pair"
-                    value={formData.pair}
-                    onChange={handleInputChange}
-                    className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
-                    required
-                    disabled={isTrialExpired}
-                  >
-                    <option value="" className="text-gray-400">Selecciona par</option>
-                    <optgroup label="Forex Mayores">
-                      <option value="EURUSD">EUR/USD</option>
-                      <option value="GBPUSD">GBP/USD</option>
-                      <option value="USDJPY">USD/JPY</option>
-                      <option value="AUDUSD">AUD/USD</option>
-                      <option value="USDCAD">USD/CAD</option>
-                      <option value="USDCHF">USD/CHF</option>
-                      <option value="NZDUSD">NZD/USD</option>
-                    </optgroup>
-                    <optgroup label="Forex Menores">
-                      <option value="EURGBP">EUR/GBP</option>
-                      <option value="EURJPY">EUR/JPY</option>
-                      <option value="GBPJPY">GBP/JPY</option>
-                      <option value="AUDJPY">AUD/JPY</option>
-                      <option value="CADJPY">CAD/JPY</option>
-                      <option value="CHFJPY">CHF/JPY</option>
-                    </optgroup>
-                    <optgroup label="Metales Preciosos">
-                      <option value="XAUUSD">XAU/USD (Oro)</option>
-                      <option value="XAGUSD">XAG/USD (Plata)</option>
-                      <option value="XPTUSD">XPT/USD (Platino)</option>
-                      <option value="XPDUSD">XPD/USD (Paladio)</option>
-                    </optgroup>
-                    <optgroup label="Índices">
-                      <option value="US30">US30 (Dow Jones)</option>
-                      <option value="NAS100">NAS100 (Nasdaq)</option>
-                      <option value="SPX500">SPX500 (S&P 500)</option>
-                      <option value="GER40">GER40 (DAX)</option>
-                      <option value="UK100">UK100 (FTSE)</option>
-                      <option value="JPN225">JPN225 (Nikkei)</option>
-                    </optgroup>
-                    <optgroup label="Criptomonedas">
-                      <option value="BTCUSD">BTC/USD</option>
-                      <option value="ETHUSD">ETH/USD</option>
-                      <option value="BNBUSD">BNB/USD</option>
-                      <option value="ADAUSD">ADA/USD</option>
-                    </optgroup>
-                    <optgroup label="Commodities">
-                      <option value="USOIL">Petróleo US</option>
-                      <option value="UKOIL">Petróleo UK</option>
-                      <option value="NATGAS">Gas Natural</option>
-                    </optgroup>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Fila de campos: Sesión y Risk:Reward */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-white font-medium mb-2 text-base">
-                  Sesión
-                </label>
-                <div className="relative">
-                  <select
-                    name="session"
-                    value={formData.session}
-                    onChange={handleInputChange}
-                    className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
-                    disabled={isTrialExpired}
-                  >
-                    <option value="" className="text-gray-400">Selecciona sesión</option>
-                    <option value="asian">Asiática</option>
-                    <option value="london">Londres</option>
-                    <option value="newyork">Nueva York</option>
-                    <option value="overlap">Solapamiento</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-white font-medium mb-2 text-base">
-                  Risk:Reward
-                </label>
-                <div className="relative">
-                  <select
-                    name="riskReward"
-                    value={formData.riskReward}
-                    onChange={handleInputChange}
-                    className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
-                    required
-                    disabled={isTrialExpired}
-                  >
-                    <option value="" className="text-gray-400">Selecciona ratio</option>
-                    <option value="1:1">1:1</option>
-                    <option value="1:2">1:2</option>
-                    <option value="1:3">1:3</option>
-                    <option value="1:4">1:4</option>
-                    <option value="1:5">1:5</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bias del mercado */}
-            <div>
-              <label className="block text-white font-medium mb-3 text-base">
-                Bias del mercado
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+              {/* Botón de guardar */}
+              <div className="pt-2">
                 <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setSelectedBias('alcista')}
-                  className={`p-3 rounded-lg font-medium text-sm transition-all ${
-                    selectedBias === 'alcista'
-                      ? 'bg-green-600 text-white border border-green-500'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
+                  type="submit"
+                  className={`w-full font-semibold py-3 px-6 rounded-lg transition-colors text-base shadow-lg ${
+                    isTrialExpired 
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                      : 'bg-white text-black hover:bg-gray-100'
                   }`}
                   disabled={isTrialExpired}
                 >
-                  Alcista
-                </button>
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setSelectedBias('bajista')}
-                  className={`p-3 rounded-lg font-medium text-sm transition-all ${
-                    selectedBias === 'bajista'
-                      ? 'bg-red-600 text-white border border-red-500'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  Bajista
+                  {isTrialExpired ? 'Límite Alcanzado - Upgrade a Premium' : 'Guardar Trade'}
                 </button>
               </div>
-            </div>
-
-            {/* Resultado */}
-            <div>
-              <label className="block text-white font-medium mb-3 text-base">
-                Resultado
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setSelectedResult('win')}
-                  className={`p-3 rounded-lg font-medium text-sm transition-all ${
-                    selectedResult === 'win'
-                      ? 'bg-green-600 text-white border border-green-500'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  Win
-                </button>
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setSelectedResult('loss')}
-                  className={`p-3 rounded-lg font-medium text-sm transition-all ${
-                    selectedResult === 'loss'
-                      ? 'bg-red-600 text-white border border-red-500'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  Loss
-                </button>
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setSelectedResult('be')}
-                  className={`p-3 rounded-lg font-medium text-sm transition-all ${
-                    selectedResult === 'be'
-                      ? 'bg-yellow-600 text-white border border-yellow-500'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  BE
-                </button>
-              </div>
-            </div>
-
-            {/* Descripción del trade */}
-            <div>
-              <label className="block text-white font-medium mb-2 text-base">
-                Descripción del trade
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Describe tu análisis, setup y gestión del trade..."
-                rows={4}
-                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none text-sm"
-                disabled={isTrialExpired}
-              />
-            </div>
-
-            {/* Confluencias */}
-            <div>
-              <label className="block text-white font-medium mb-2 text-base">
-                Confluencias
-              </label>
-              <textarea
-                name="confluences"
-                value={formData.confluences}
-                onChange={handleInputChange}
-                placeholder="¿Qué te hizo tomar este trade? Ej: Soporte/Resistencia, Fibonacci, Patrones, etc..."
-                rows={3}
-                className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none resize-none text-sm"
-                disabled={isTrialExpired}
-              />
-            </div>
-
-            {/* Resultado financiero - Opcional y flexible */}
-            <div>
-              <label className="block text-white font-medium mb-3 text-base">
-                Resultado financiero (opcional)
-              </label>
-              
-              {/* Selector de tipo de P&L */}
-              <div className="mb-3">
-                <div className="relative">
-                  <select
-                    name="pnl_type"
-                    value={formData.pnl_type}
-                    onChange={handleInputChange}
-                    className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none appearance-none text-sm pr-8"
-                    disabled={isTrialExpired}
-                  >
-                    <option value="" className="text-gray-400">Selecciona tipo de resultado</option>
-                    <option value="percentage">Porcentaje (%)</option>
-                    <option value="pips">Pips</option>
-                    <option value="money">Dinero ($)</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Campo de valor solo si se seleccionó un tipo */}
-              {formData.pnl_type && (
-                <div>
-                  <input
-                    type="number"
-                    name="pnl_value"
-                    value={formData.pnl_value}
-                    onChange={handleInputChange}
-                    placeholder={
-                      formData.pnl_type === 'percentage' ? 'Ej: +2,5 o -1,8' :
-                      formData.pnl_type === 'pips' ? 'Ej: +50 o -25' :
-                      'Ej: +150 o -75'
-                    }
-                    step={formData.pnl_type === 'percentage' ? '0.01' : formData.pnl_type === 'pips' ? '0.1' : '0.01'}
-                    className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
-                    disabled={isTrialExpired}
-                  />
-                  <div className="text-gray-400 text-xs mt-1">
-                    {formData.pnl_type === 'percentage' && 'Ingresa el porcentaje de ganancia/pérdida (ej: 2,5 para +2,5%)'}
-                    {formData.pnl_type === 'pips' && 'Ingresa los pips ganados/perdidos (ej: 50 para +50 pips)'}
-                    {formData.pnl_type === 'money' && 'Ingresa la cantidad en dinero ganada/perdida (ej: 150 para +$150)'}
-                  </div>
-                  {/* Indicador visual cuando se selecciona Loss */}
-                  {selectedResult === 'loss' && formData.pnl_value && parseFloat(formData.pnl_value) > 0 && (
-                    <div className="text-orange-400 text-xs mt-1 flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      ℹ️ Como seleccionaste "Loss", el valor se convertirá automáticamente a negativo
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Selector de sentimiento - Versión con botones fijos */}
-            <div>
-              <label className="block text-white font-medium mb-3 text-base">
-                ¿Cómo te sentiste con el trade?
-              </label>
-              
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setConfidence(25)}
-                  className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
-                    confidence <= 33
-                      ? 'bg-red-600/20 text-red-400 border border-red-500/50'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  <span className="text-2xl">😞</span>
-                  <span>Mal</span>
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setConfidence(55)}
-                  className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
-                    confidence > 33 && confidence <= 66
-                      ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-500/50'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  <span className="text-2xl">🤔</span>
-                  <span>Regular</span>
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => !isTrialExpired && setConfidence(85)}
-                  className={`p-4 rounded-lg font-medium text-sm transition-all flex flex-col items-center space-y-2 ${
-                    confidence > 66
-                      ? 'bg-green-600/20 text-green-400 border border-green-500/50'
-                      : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 border border-gray-600'
-                  }`}
-                  disabled={isTrialExpired}
-                >
-                  <span className="text-2xl">😊</span>
-                  <span>Genial</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Botón de guardar */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                className={`w-full font-semibold py-3 px-6 rounded-lg transition-colors text-base shadow-lg ${
-                  isTrialExpired 
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                    : 'bg-white text-black hover:bg-gray-100'
-                }`}
-                disabled={isTrialExpired}
-              >
-                {isTrialExpired ? 'Límite Alcanzado - Upgrade a Premium' : 'Guardar Trade'}
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -1159,6 +1371,17 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             <span className="text-xs font-medium">Trades</span>
+          </Link>
+
+          {/* Feed */}
+          <Link
+            href="/feed"
+            className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="text-xs font-medium">Feed</span>
           </Link>
 
           {/* Referidos */}
