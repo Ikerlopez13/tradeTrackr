@@ -60,9 +60,9 @@ BEGIN
     -- Calcular todas las estadísticas desde la tabla trades
     SELECT 
         COUNT(*),
-        COUNT(CASE WHEN result = 'Win' THEN 1 END),
-        COUNT(CASE WHEN result = 'Loss' THEN 1 END),
-        COUNT(CASE WHEN result = 'BE' THEN 1 END),
+        COUNT(CASE WHEN result = 'win' THEN 1 END),
+        COUNT(CASE WHEN result = 'loss' THEN 1 END),
+        COUNT(CASE WHEN result = 'be' THEN 1 END),
         COALESCE(SUM(pnl_percentage), 0),
         COALESCE(SUM(pnl_pips), 0),
         COALESCE(SUM(pnl_money), 0)

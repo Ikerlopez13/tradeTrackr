@@ -291,7 +291,7 @@ export default function Home() {
 
       console.log('Guardando trade usando API segura...')
       
-      // Usar API route segura en lugar de llamada directa a Supabase
+      // Crear el objeto trade
       const tradeData = {
         title: formData.title,
         pair: formData.pair,
@@ -299,13 +299,13 @@ export default function Home() {
         session: formData.session,
         bias: selectedBias,
         risk_reward: formData.riskReward,
-        result: selectedResult,
+        result: selectedResult?.toLowerCase(),
         feeling: confidence,
         description: formData.description,
         confluences: formData.confluences,
-        pnl_percentage: pnl_percentage,
-        pnl_pips: pnl_pips,
-        pnl_money: pnl_money,
+        pnl_percentage,
+        pnl_pips,
+        pnl_money,
         screenshot_url: screenshotUrl
       }
       
