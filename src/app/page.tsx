@@ -273,12 +273,18 @@ export default function Home() {
       if (formData.pnl_type && formData.pnl_value) {
         const value = parseFloat(formData.pnl_value)
         if (!isNaN(value)) {
+          // 🔧 BUG FIX: Si el resultado es "loss" y el valor es positivo, convertir a negativo
+          let adjustedValue = value
+          if (selectedResult === 'loss' && value > 0) {
+            adjustedValue = -value
+          }
+          
           if (formData.pnl_type === 'percentage') {
-            pnl_percentage = value
+            pnl_percentage = adjustedValue
           } else if (formData.pnl_type === 'pips') {
-            pnl_pips = value
+            pnl_pips = adjustedValue
           } else if (formData.pnl_type === 'money') {
-            pnl_money = value
+            pnl_money = adjustedValue
           }
         }
       }
@@ -1048,6 +1054,15 @@ export default function Home() {
                     {formData.pnl_type === 'pips' && 'Ingresa los pips ganados/perdidos (ej: 50 para +50 pips)'}
                     {formData.pnl_type === 'money' && 'Ingresa la cantidad en dinero ganada/perdida (ej: 150 para +$150)'}
                   </div>
+                  {/* Indicador visual cuando se selecciona Loss */}
+                  {selectedResult === 'loss' && formData.pnl_value && parseFloat(formData.pnl_value) > 0 && (
+                    <div className="text-orange-400 text-xs mt-1 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      ℹ️ Como seleccionaste "Loss", el valor se convertirá automáticamente a negativo
+                    </div>
+                  )}
                 </div>
               )}
             </div>
