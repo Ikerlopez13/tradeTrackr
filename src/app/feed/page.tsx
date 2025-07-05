@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Trophy, TrendingUp, TrendingDown, Minus, Clock, User, BarChart3, Heart } from 'lucide-react'
+import { Trophy, TrendingUp, TrendingDown, Minus, Clock, User, BarChart3, Heart, BadgeCheck } from 'lucide-react'
 
 interface PublicTrade {
   id: string
@@ -31,6 +31,7 @@ interface PublicTrade {
   session?: string
   feeling?: number
   likes_count: number
+  is_premium: boolean
 }
 
 interface LikeData {
@@ -422,7 +423,12 @@ export default function FeedPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="text-white font-medium">{trade.username}</h3>
+                      <div className="flex items-center space-x-1">
+                        <h3 className="text-white font-medium">{trade.username}</h3>
+                        {(trade.is_premium || true) && (
+                          <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
+                        )}
+                      </div>
                       <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(trade.created_at)}</span>
@@ -601,7 +607,12 @@ export default function FeedPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
-                  <p className="text-gray-400 text-sm">por {selectedTrade.username}</p>
+                  <div className="flex items-center space-x-1 text-gray-400 text-sm">
+                    <span>por {selectedTrade.username}</span>
+                    {selectedTrade.is_premium && (
+                      <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
+                    )}
+                  </div>
                 </div>
               </div>
               <button

@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
       feeling: null, // La vista original no incluía feeling
       username: trade.username,
       avatar_url: trade.avatar_url,
+      is_premium: trade.is_premium || false,
       wins: trade.wins || 0,
       losses: trade.losses || 0,
       win_rate: trade.win_rate || 0,

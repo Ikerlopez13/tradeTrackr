@@ -88,7 +88,10 @@ export default function PricingPage() {
       icon: '🚀',
       features: [
         'Trades ilimitados',
-        'Análisis avanzado con IA',
+        'Badge de verificación ✓',
+        'Consejos de IA ilimitados',
+        'Editar y borrar trades',
+        'Ser anfitrión de grupos',
         'Reportes detallados PDF',
         'Alertas personalizadas',
         'Integración con brokers',
@@ -107,7 +110,10 @@ export default function PricingPage() {
       icon: '💳',
       features: [
         'Trades ilimitados',
-        'Análisis avanzado con IA',
+        'Badge de verificación ✓',
+        'Consejos de IA ilimitados',
+        'Editar y borrar trades',
+        'Ser anfitrión de grupos',
         'Reportes detallados PDF',
         'Alertas personalizadas',
         'Integración con brokers',
@@ -305,6 +311,37 @@ export default function PricingPage() {
             ))}
           </div>
 
+          {/* Premium Features Highlight */}
+          <div className="mt-16 bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/30">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold mb-4 text-white">🎯 Características Exclusivas Premium</h3>
+              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-semibold text-white">Badge de Verificación</h4>
+                  </div>
+                  <p className="text-gray-300 text-sm">Obtén el badge azul ✓ que aparece junto a tu nombre en el feed y te identifica como trader Premium.</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-semibold text-white">Anfitrión de Grupos</h4>
+                  </div>
+                  <p className="text-gray-300 text-sm">Solo los usuarios Premium pueden crear y ser anfitriones de grupos privados de trading.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* FAQ Section */}
           <div className="mt-24 max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Preguntas Frecuentes</h2>
@@ -318,12 +355,12 @@ export default function PricingPage() {
                 <p className="text-gray-300">No, los 3 trades gratuitos son únicos por cuenta. Una vez utilizados, necesitarás actualizar a Pro para continuar registrando trades.</p>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <h3 className="text-lg font-semibold mb-3">¿Qué métodos de pago aceptan?</h3>
-                <p className="text-gray-300">Aceptamos todas las tarjetas de crédito principales, PayPal y transferencias bancarias.</p>
+                <h3 className="text-lg font-semibold mb-3">¿Solo los usuarios Premium pueden crear grupos?</h3>
+                <p className="text-gray-300">Sí, solo los usuarios Premium pueden ser anfitriones y crear grupos privados. Los usuarios gratuitos pueden unirse a grupos existentes.</p>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <h3 className="text-lg font-semibold mb-3">¿Hay descuentos adicionales?</h3>
-                <p className="text-gray-300">El plan anual ya incluye un descuento significativo. También ofrecemos descuentos especiales para estudiantes verificados.</p>
+                <h3 className="text-lg font-semibold mb-3">¿Qué métodos de pago aceptan?</h3>
+                <p className="text-gray-300">Aceptamos todas las tarjetas de crédito principales, PayPal y transferencias bancarias.</p>
               </div>
             </div>
           </div>
