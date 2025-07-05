@@ -3,14 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
+// Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Function to get Supabase client (avoid build-time initialization)
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -134,6 +138,8 @@ async function makeUserPremium(email: string, stripeCustomerId: string) {
   console.log(`🌟 Making user premium: ${email}`);
   
   try {
+    const supabase = getSupabaseClient();
+    
     // Buscar usuario por email
     const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
     
@@ -197,6 +203,8 @@ async function removeUserPremium(email: string) {
   console.log(`❌ Removing premium from user: ${email}`);
   
   try {
+    const supabase = getSupabaseClient();
+    
     // Buscar usuario por email
     const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
     
