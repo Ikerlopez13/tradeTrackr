@@ -755,6 +755,92 @@ export default function ProfilePage() {
             <TradeAdviceCard className="mb-6" />
           </div>
 
+          {/* Estadísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 text-center">
+              <div className="text-3xl font-bold text-green-400 mb-2">{stats.wins}</div>
+              <div className="text-gray-400">Wins</div>
+            </div>
+            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 text-center">
+              <div className="text-3xl font-bold text-red-400 mb-2">{stats.losses}</div>
+              <div className="text-gray-400">Losses</div>
+            </div>
+            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 text-center">
+              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.winRate}%</div>
+              <div className="text-gray-400">Win Rate</div>
+            </div>
+          </div>
+
+          {/* Opciones adicionales - Solo móvil */}
+          <div className="md:hidden mb-8">
+            <h2 className="text-xl font-bold text-white mb-4">Opciones</h2>
+            <div className="space-y-4">
+              {/* Referidos */}
+              <Link
+                href="/referrals"
+                className="flex items-center justify-between bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">Referidos</h3>
+                    <p className="text-gray-400 text-sm">Invita amigos y gana recompensas</p>
+                  </div>
+                </div>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+
+              {/* Suscripción/Pricing */}
+              {!isPremium ? (
+                <Link
+                  href="/pricing"
+                  className="flex items-center justify-between bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-yellow-600/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium">Hazte Premium</h3>
+                      <p className="text-gray-400 text-sm">Desbloquea todas las funciones</p>
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              ) : (
+                <Link
+                  href="/subscription"
+                  className="flex items-center justify-between bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium">Mi Suscripción</h3>
+                      <p className="text-gray-400 text-sm">Gestiona tu cuenta premium</p>
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+          </div>
+
           {/* Navegación rápida */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link
@@ -795,15 +881,7 @@ export default function ProfilePage() {
           {/* Nuevo Trade */}
           <Link
             href="/"
-            className={`flex flex-col items-center py-1 px-2 transition-colors ${
-              isTrialExpired ? 'text-gray-600' : 'text-gray-400 hover:text-white'
-            }`}
-            onClick={(e) => {
-              if (isTrialExpired) {
-                e.preventDefault()
-                alert('Has alcanzado el límite de trades gratuitos. Actualiza a Premium para continuar.')
-              }
-            }}
+            className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -833,28 +911,14 @@ export default function ProfilePage() {
             <span className="text-xs font-medium">Feed</span>
           </Link>
 
-          {/* Pricing - Solo para usuarios gratuitos */}
-          {!isPremium ? (
-            <Link
-              href="/pricing"
-              className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-              <span className="text-xs font-medium">Pricing</span>
-            </Link>
-          ) : (
-            <Link
-              href="/subscription"
-              className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 714.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 713.138-3.138z" />
-              </svg>
-              <span className="text-xs font-medium">Suscripción</span>
-            </Link>
-          )}
+          {/* Leaderboards */}
+          <Link
+            href="/leaderboards"
+            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
+          >
+            <Trophy className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Ranking</span>
+          </Link>
 
           {/* Perfil - Página actual */}
           <Link
@@ -865,15 +929,6 @@ export default function ProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span className="text-xs font-medium">Perfil</span>
-          </Link>
-
-          {/* Leaderboards */}
-          <Link
-            href="/leaderboards"
-            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
-          >
-            <Trophy className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Ranking</span>
           </Link>
         </div>
       </nav>

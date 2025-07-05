@@ -585,9 +585,10 @@ export default function LeaderboardsView() {
         </div>
       </div>
 
-      {/* Bottom Navigation - Solo móvil */}
+      {/* Bottom Navigation Menu - Solo móvil */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-sm border-t border-gray-800 z-50" style={{backgroundColor: '#010314'}}>
         <div className="flex justify-around items-center py-2">
+          {/* Nuevo Trade */}
           <Link
             href="/"
             className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
@@ -598,6 +599,7 @@ export default function LeaderboardsView() {
             <span className="text-xs font-medium">Nuevo</span>
           </Link>
 
+          {/* Mis Trades */}
           <Link
             href="/trades"
             className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
@@ -608,6 +610,7 @@ export default function LeaderboardsView() {
             <span className="text-xs font-medium">Trades</span>
           </Link>
 
+          {/* Feed */}
           <Link
             href="/feed"
             className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
@@ -618,16 +621,7 @@ export default function LeaderboardsView() {
             <span className="text-xs font-medium">Feed</span>
           </Link>
 
-          <Link
-            href="/referrals"
-            className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="text-xs font-medium">Referidos</span>
-          </Link>
-
+          {/* Leaderboards - Página actual */}
           <Link
             href="/leaderboards"
             className="flex flex-col items-center py-1 px-2 text-yellow-400"
@@ -636,28 +630,7 @@ export default function LeaderboardsView() {
             <span className="text-xs font-medium">Ranking</span>
           </Link>
 
-          {!isPremium ? (
-            <Link
-              href="/pricing"
-              className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-              <span className="text-xs font-medium">Pricing</span>
-            </Link>
-          ) : (
-            <Link
-              href="/subscription"
-              className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-              <span className="text-xs font-medium">Suscripción</span>
-            </Link>
-          )}
-
+          {/* Perfil */}
           <Link
             href="/profile"
             className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"

@@ -343,26 +343,15 @@ export default function SubscriptionPage() {
             <span className="text-xs font-medium">Trades</span>
           </Link>
 
-          {/* Suscripción - Página actual */}
+          {/* Feed */}
           <Link
-            href="/subscription"
-            className="flex flex-col items-center py-1 px-2 text-white"
-          >
-            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 713.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 713.138-3.138z" />
-            </svg>
-            <span className="text-xs font-medium">Suscripción</span>
-          </Link>
-
-          {/* Perfil */}
-          <Link
-            href="/profile"
+            href="/feed"
             className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            <span className="text-xs font-medium">Perfil</span>
+            <span className="text-xs font-medium">Feed</span>
           </Link>
 
           {/* Leaderboards */}
@@ -374,15 +363,15 @@ export default function SubscriptionPage() {
             <span className="text-xs font-medium">Ranking</span>
           </Link>
 
-          {/* Feed */}
+          {/* Perfil */}
           <Link
-            href="/feed"
+            href="/profile"
             className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="text-xs font-medium">Feed</span>
+            <span className="text-xs font-medium">Perfil</span>
           </Link>
         </div>
       </nav>

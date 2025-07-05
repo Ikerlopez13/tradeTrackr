@@ -390,18 +390,14 @@ export default function PricingPage() {
             <span className="text-xs font-medium">Feed</span>
           </Link>
 
-          {/* Pricing - Página actual - Solo para usuarios gratuitos */}
-          {!isPremium && (
-            <Link
-              href="/pricing"
-              className="flex flex-col items-center py-1 px-2 text-white"
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-              <span className="text-xs font-medium">Pricing</span>
-            </Link>
-          )}
+          {/* Leaderboards */}
+          <Link
+            href="/leaderboards"
+            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
+          >
+            <Trophy className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Ranking</span>
+          </Link>
 
           {/* Perfil */}
           <Link
@@ -412,15 +408,6 @@ export default function PricingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span className="text-xs font-medium">Perfil</span>
-          </Link>
-
-          {/* Leaderboards */}
-          <Link
-            href="/leaderboards"
-            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
-          >
-            <Trophy className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Ranking</span>
           </Link>
         </div>
       </nav>
