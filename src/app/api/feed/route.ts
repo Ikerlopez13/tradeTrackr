@@ -22,36 +22,46 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
 
-    // Obtener trades públicos usando la vista actualizada
+    // Usar la vista public_trades_feed como estaba originalmente
     const { data: trades, error } = await supabase
       .from('public_trades_feed')
       .select('*')
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
     if (error) {
-      console.error('Error fetching public trades:', error)
+      console.error('Error fetching trades:', error)
       return NextResponse.json(
         { error: 'Error al obtener trades' },
         { status: 500 }
       )
     }
 
-    // Para cada trade, verificar si el usuario actual ha dado like
-    const tradesWithUserLikes = await Promise.all(
-      (trades || []).map(async (trade) => {
-        const { data: userLike, error: likeError } = await supabase
-          .from('trade_likes')
-          .select('id')
-          .eq('trade_id', trade.id)
-          .eq('user_id', user.id)
-          .single()
-
-        return {
-          ...trade,
-          user_has_liked: !!userLike && !likeError
-        }
-      })
-    )
+    // Formatear los datos para el frontend
+    const formattedTrades = (trades || []).map((trade: any) => ({
+      id: trade.id,
+      title: trade.title,
+      pair: trade.pair,
+      timeframe: trade.timeframe,
+      bias: trade.bias,
+      result: trade.result,
+      risk_reward: trade.risk_reward,
+      pnl_percentage: trade.pnl_percentage,
+      pnl_pips: trade.pnl_pips,
+      pnl_money: trade.pnl_money,
+      screenshot_url: trade.screenshot_url,
+      created_at: trade.created_at,
+      description: null, // La vista original no incluía description
+      confluences: null, // La vista original no incluía confluences
+      session: null, // La vista original no incluía session
+      feeling: null, // La vista original no incluía feeling
+      username: trade.username,
+      avatar_url: trade.avatar_url,
+      wins: trade.wins || 0,
+      losses: trade.losses || 0,
+      win_rate: trade.win_rate || 0,
+      total_pnl_percentage: trade.total_pnl_percentage || 0
+    }))
 
     // Obtener el conteo total para paginación
     const { count: totalCount, error: countError } = await supabase
@@ -63,20 +73,21 @@ export async function GET(request: NextRequest) {
     }
 
     const totalPages = Math.ceil((totalCount || 0) / limit)
+    const hasMore = page < totalPages
 
     return NextResponse.json({
-      trades: tradesWithUserLikes,
+      trades: formattedTrades,
       pagination: {
         page,
         limit,
-        total: totalCount || 0,
+        totalCount,
         totalPages,
-        hasMore: page < totalPages
+        hasMore
       }
     })
 
   } catch (error) {
-    console.error('Error in feed API:', error)
+    console.error('Unexpected error:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

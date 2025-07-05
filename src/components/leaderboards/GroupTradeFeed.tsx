@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { TrendingUp, TrendingDown, Calendar, User, Target, DollarSign, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, Calendar, User, Target, DollarSign, Clock, X } from 'lucide-react'
 import Image from 'next/image'
 
 interface GroupTrade {
@@ -20,6 +20,12 @@ interface GroupTrade {
   username: string
   avatar_url?: string
   is_premium: boolean
+  description?: string
+  bias?: string
+  confluences?: string
+  risk_reward?: string
+  session?: string
+  feeling?: number
 }
 
 interface GroupTradeFeedProps {
@@ -58,7 +64,7 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
         return
       }
 
-      // Obtener trades de los miembros del grupo
+      // Obtener trades públicos de los miembros del grupo
       const { data, error } = await supabase
         .from('trades')
         .select(`
@@ -73,6 +79,12 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
           created_at,
           screenshot_url,
           user_id,
+          description,
+          bias,
+          confluences,
+          risk_reward,
+          session,
+          feeling,
           profiles!inner(
             username,
             avatar_url,
@@ -80,6 +92,7 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
           )
         `)
         .in('user_id', userIds)
+        .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(50)
 
@@ -128,8 +141,19 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Image
+            src="/logo.jpeg"
+            alt="TradeTrackr Logo"
+            width={60}
+            height={60}
+            priority
+            unoptimized
+            className="rounded-lg animate-scale-cycle mx-auto mb-3"
+          />
+          <div className="text-white text-sm font-medium">Cargando trades del grupo...</div>
+        </div>
       </div>
     )
   }
@@ -147,9 +171,17 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
       {trades.length === 0 ? (
         <div className="text-center py-8">
           <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400">
+          <p className="text-gray-400 mb-2">
             No hay trades públicos en este grupo aún
           </p>
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>Para que aparezcan trades aquí:</p>
+            <ul className="list-disc list-inside space-y-1 text-left max-w-md mx-auto">
+              <li>Los miembros del grupo deben crear trades</li>
+              <li>Los trades deben estar marcados como "públicos"</li>
+              <li>Activa el toggle "Compartir en el Feed Público" al crear un trade</li>
+            </ul>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -316,6 +348,17 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
                     <span className="text-gray-400 text-sm">Timeframe:</span>
                     <div className="text-white font-medium">{selectedTrade.timeframe}</div>
                   </div>
+                  {selectedTrade.session && (
+                    <div>
+                      <span className="text-gray-400 text-sm">Sesión:</span>
+                      <div className="text-white font-medium">
+                        {selectedTrade.session === 'asian' ? 'Asiática' : 
+                         selectedTrade.session === 'london' ? 'Londres' : 
+                         selectedTrade.session === 'newyork' ? 'Nueva York' : 
+                         'Solapamiento'}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-3">
@@ -326,6 +369,22 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
                        selectedTrade.result === 'loss' ? 'Loss' : 'Break Even'}
                     </div>
                   </div>
+                  {selectedTrade.bias && (
+                    <div>
+                      <span className="text-gray-400 text-sm">Bias:</span>
+                      <div className={`font-medium ${
+                        selectedTrade.bias === 'alcista' ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {selectedTrade.bias === 'alcista' ? 'Alcista' : 'Bajista'}
+                      </div>
+                    </div>
+                  )}
+                  {selectedTrade.risk_reward && (
+                    <div>
+                      <span className="text-gray-400 text-sm">Risk:Reward:</span>
+                      <div className="text-white font-medium">{selectedTrade.risk_reward}</div>
+                    </div>
+                  )}
                   <div>
                     <span className="text-gray-400 text-sm">Trader:</span>
                     <div className="text-white font-medium flex items-center space-x-2">
@@ -377,6 +436,42 @@ export default function GroupTradeFeed({ groupId, currentUserId }: GroupTradeFee
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+              
+              {/* Sentimiento */}
+              {selectedTrade.feeling && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Análisis de Sentimiento</h3>
+                  <div className="flex items-center justify-center space-x-4">
+                    <span className="text-3xl">
+                      {selectedTrade.feeling <= 30 ? '😞' : 
+                       selectedTrade.feeling <= 70 ? '🤔' : '😊'}
+                    </span>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white">{selectedTrade.feeling}%</div>
+                      <div className="text-gray-400 text-sm">
+                        {selectedTrade.feeling <= 30 ? 'Frustrado' : 
+                         selectedTrade.feeling <= 70 ? 'Neutral' : 'Confiable'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Confluencias */}
+              {selectedTrade.confluences && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Confluencias</h3>
+                  <p className="text-white">{selectedTrade.confluences}</p>
+                </div>
+              )}
+              
+              {/* Descripción */}
+              {selectedTrade.description && (
+                <div className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-gray-400 text-sm mb-3">Descripción</h3>
+                  <p className="text-white">{selectedTrade.description}</p>
                 </div>
               )}
               
