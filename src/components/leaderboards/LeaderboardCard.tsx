@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Trophy, TrendingUp, Target, DollarSign, Users, Star, Crown, Medal } from 'lucide-react'
+import { getSafeDisplayName, getUserInitials } from '@/utils/userUtils'
 
 interface LeaderboardEntry {
   id: string
@@ -60,6 +61,10 @@ export default function LeaderboardCard({
     group_rank: entry.group_rank || rank
   }
 
+  // Get safe display name for privacy
+  const displayName = getSafeDisplayName(safeEntry.username)
+  const userInitials = getUserInitials(safeEntry.username)
+
   const getRankIcon = (position: number) => {
     if (position === 1) return <Crown className="w-5 h-5 text-yellow-400" />
     if (position === 2) return <Medal className="w-5 h-5 text-gray-300" />
@@ -99,13 +104,13 @@ export default function LeaderboardCard({
             {safeEntry.avatar_url ? (
               <img
                 src={safeEntry.avatar_url}
-                alt={safeEntry.username}
+                alt={displayName}
                 className="w-10 h-10 rounded-full object-cover"
               />
             ) : (
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">
-                  {safeEntry.username.charAt(0).toUpperCase()}
+                  {userInitials}
                 </span>
               </div>
             )}
@@ -123,7 +128,7 @@ export default function LeaderboardCard({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
               <h3 className="text-white font-semibold text-lg truncate">
-                {safeEntry.username}
+                {displayName}
               </h3>
               {isCurrentUser && (
                 <span className="bg-blue-600/20 text-blue-400 text-xs px-2 py-1 rounded">

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Trophy, TrendingUp, TrendingDown, Minus, Clock, User, BarChart3, Heart, BadgeCheck } from 'lucide-react'
+import { getSafeDisplayName, getUserInitials } from '@/utils/userUtils'
 
 interface PublicTrade {
   id: string
@@ -406,150 +407,156 @@ export default function FeedPage() {
 
           {/* Lista de trades */}
           <div className="space-y-6">
-            {trades.map((trade) => (
-              <div 
-                key={trade.id} 
-                onClick={() => openTradeModal(trade)}
-                className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors cursor-pointer"
-              >
-                {/* Header del trade */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      {trade.avatar_url ? (
-                        <img src={trade.avatar_url} alt={trade.username} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <User className="w-5 h-5 text-white" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-1">
-                        <h3 className="text-white font-medium">{trade.username}</h3>
-                        {(trade.is_premium || true) && (
-                          <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
+            {trades.map((trade) => {
+              // Get safe display name for each trade
+              const displayName = getSafeDisplayName(trade.username)
+              const userInitials = getUserInitials(trade.username)
+              
+              return (
+                <div 
+                  key={trade.id} 
+                  onClick={() => openTradeModal(trade)}
+                  className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors cursor-pointer"
+                >
+                  {/* Header del trade */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                        {trade.avatar_url ? (
+                          <img src={trade.avatar_url} alt={displayName} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <span className="text-white font-bold text-sm">{userInitials}</span>
                         )}
                       </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatDate(trade.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-sm">
-                    <div className="text-center">
-                      <div className="text-green-400 font-bold">{trade.wins}</div>
-                      <div className="text-gray-400">Wins</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-red-400 font-bold">{trade.losses}</div>
-                      <div className="text-gray-400">Losses</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-blue-400 font-bold">{trade.win_rate}%</div>
-                      <div className="text-gray-400">WR</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Título del trade */}
-                <h2 className="text-xl font-semibold text-white mb-4">{trade.title}</h2>
-
-                {/* Información del trade */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-gray-400 text-sm">Par</div>
-                    <div className="text-white font-medium">{trade.pair}</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-gray-400 text-sm">Timeframe</div>
-                    <div className="text-white font-medium">{trade.timeframe}</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-gray-400 text-sm">Bias</div>
-                    <div className={`font-medium ${getBiasColor(trade.bias)}`}>
-                      {trade.bias === 'alcista' ? '📈 Alcista' : '📉 Bajista'}
-                    </div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <div className="text-gray-400 text-sm">R:R</div>
-                    <div className="text-white font-medium">{trade.risk_reward}</div>
-                  </div>
-                </div>
-
-                {/* Resultado */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`flex items-center space-x-2 ${getResultColor(trade.result)}`}>
-                    {getResultIcon(trade.result)}
-                    <span className="font-medium text-lg capitalize">{trade.result}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-sm">
-                    {trade.pnl_percentage && (
-                      <div className="text-center">
-                        <div className={`font-bold ${trade.pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {trade.pnl_percentage >= 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%
+                      <div>
+                        <div className="flex items-center space-x-1">
+                          <h3 className="text-white font-medium">{displayName}</h3>
+                          {(trade.is_premium || true) && (
+                            <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
+                          )}
                         </div>
-                        <div className="text-gray-400">Porcentaje</div>
-                      </div>
-                    )}
-                    {trade.pnl_pips && (
-                      <div className="text-center">
-                        <div className={`font-bold ${trade.pnl_pips >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {trade.pnl_pips >= 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)}
+                        <div className="flex items-center space-x-2 text-sm text-gray-400">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDate(trade.created_at)}</span>
                         </div>
-                        <div className="text-gray-400">Pips</div>
                       </div>
-                    )}
-                    {trade.pnl_money && (
+                    </div>
+                    
+                    <div className="flex items-center space-x-4 text-sm">
                       <div className="text-center">
-                        <div className={`font-bold ${trade.pnl_money >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {trade.pnl_money >= 0 ? '+' : ''}${Math.abs(trade.pnl_money).toFixed(2)}
-                        </div>
-                        <div className="text-gray-400">Dinero</div>
+                        <div className="text-green-400 font-bold">{trade.wins}</div>
+                        <div className="text-gray-400">Wins</div>
                       </div>
-                    )}
+                      <div className="text-center">
+                        <div className="text-red-400 font-bold">{trade.losses}</div>
+                        <div className="text-gray-400">Losses</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-blue-400 font-bold">{trade.win_rate}%</div>
+                        <div className="text-gray-400">WR</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Título del trade */}
+                  <h2 className="text-xl font-semibold text-white mb-4">{trade.title}</h2>
+
+                  {/* Información del trade */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">Par</div>
+                      <div className="text-white font-medium">{trade.pair}</div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">Timeframe</div>
+                      <div className="text-white font-medium">{trade.timeframe}</div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">Bias</div>
+                      <div className={`font-medium ${getBiasColor(trade.bias)}`}>
+                        {trade.bias === 'alcista' ? '📈 Alcista' : '📉 Bajista'}
+                      </div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <div className="text-gray-400 text-sm">R:R</div>
+                      <div className="text-white font-medium">{trade.risk_reward}</div>
+                    </div>
+                  </div>
+
+                  {/* Resultado */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`flex items-center space-x-2 ${getResultColor(trade.result)}`}>
+                      {getResultIcon(trade.result)}
+                      <span className="font-medium text-lg capitalize">{trade.result}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4 text-sm">
+                      {trade.pnl_percentage && (
+                        <div className="text-center">
+                          <div className={`font-bold ${trade.pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {trade.pnl_percentage >= 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%
+                          </div>
+                          <div className="text-gray-400">Porcentaje</div>
+                        </div>
+                      )}
+                      {trade.pnl_pips && (
+                        <div className="text-center">
+                          <div className={`font-bold ${trade.pnl_pips >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {trade.pnl_pips >= 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)}
+                          </div>
+                          <div className="text-gray-400">Pips</div>
+                        </div>
+                      )}
+                      {trade.pnl_money && (
+                        <div className="text-center">
+                          <div className={`font-bold ${trade.pnl_money >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {trade.pnl_money >= 0 ? '+' : ''}${Math.abs(trade.pnl_money).toFixed(2)}
+                          </div>
+                          <div className="text-gray-400">Dinero</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Screenshot */}
+                  {trade.screenshot_url && (
+                    <div className="mb-4">
+                      <img
+                        src={trade.screenshot_url}
+                        alt="Trade Screenshot"
+                        className="w-full max-h-96 object-contain rounded-lg bg-gray-800"
+                      />
+                    </div>
+                  )}
+
+                  {/* Botones de likes */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+                    <div className="flex items-center space-x-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleLike(trade.id)
+                        }}
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                          likesData[trade.id]?.isLiked 
+                            ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30' 
+                            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${likesData[trade.id]?.isLiked ? 'fill-current' : ''}`} />
+                        <span className="text-sm font-medium">
+                          {likesData[trade.id]?.count || 0}
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <div className="text-xs text-gray-500">
+                      {formatDate(trade.created_at)}
+                    </div>
                   </div>
                 </div>
-
-                {/* Screenshot */}
-                {trade.screenshot_url && (
-                  <div className="mb-4">
-                    <img
-                      src={trade.screenshot_url}
-                      alt="Trade Screenshot"
-                      className="w-full max-h-96 object-contain rounded-lg bg-gray-800"
-                    />
-                  </div>
-                )}
-
-                {/* Botones de likes */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleLike(trade.id)
-                      }}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                        likesData[trade.id]?.isLiked 
-                          ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30' 
-                          : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
-                      }`}
-                    >
-                      <Heart className={`w-4 h-4 ${likesData[trade.id]?.isLiked ? 'fill-current' : ''}`} />
-                      <span className="text-sm font-medium">
-                        {likesData[trade.id]?.count || 0}
-                      </span>
-                    </button>
-                  </div>
-                  
-                  <div className="text-xs text-gray-500">
-                    {formatDate(trade.created_at)}
-                  </div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Botón cargar más */}
@@ -600,15 +607,15 @@ export default function FeedPage() {
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                   {selectedTrade.avatar_url ? (
-                    <img src={selectedTrade.avatar_url} alt={selectedTrade.username} className="w-full h-full rounded-full object-cover" />
+                    <img src={selectedTrade.avatar_url} alt={getSafeDisplayName(selectedTrade.username)} className="w-full h-full rounded-full object-cover" />
                   ) : (
-                    <User className="w-5 h-5 text-white" />
+                    <span className="text-white font-bold text-sm">{getUserInitials(selectedTrade.username)}</span>
                   )}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
                   <div className="flex items-center space-x-1 text-gray-400 text-sm">
-                    <span>por {selectedTrade.username}</span>
+                    <span>por {getSafeDisplayName(selectedTrade.username)}</span>
                     {selectedTrade.is_premium && (
                       <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
                     )}
