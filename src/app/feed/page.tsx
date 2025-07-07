@@ -114,9 +114,16 @@ export default function FeedPage() {
       
       setHasMore(data.trades.length === limit)
       
-      // Cargar likes para todos los trades en batch
+      // Los likes ya vienen incluidos en la respuesta de la API
       if (data.trades.length > 0) {
-        await loadLikesBatch(data.trades.map((trade: PublicTrade) => trade.id))
+        const newLikesData: {[tradeId: string]: LikeData} = {}
+        data.trades.forEach((trade: PublicTrade & { user_liked: boolean }) => {
+          newLikesData[trade.id] = {
+            count: trade.likes_count,
+            isLiked: trade.user_liked
+          }
+        })
+        setLikesData(prev => ({ ...prev, ...newLikesData }))
       }
       
     } catch (error) {
@@ -124,80 +131,6 @@ export default function FeedPage() {
     } finally {
       setLoading(false)
       setLoadingMore(false)
-    }
-  }
-
-  const loadLikesBatch = async (tradeIds: string[]) => {
-    try {
-      // Cargar likes para múltiples trades de una vez
-      const likesPromises = tradeIds.map(async (tradeId) => {
-        try {
-          const response = await fetch(`/api/likes?trade_id=${tradeId}`)
-          const data = await response.json()
-          
-          return {
-            tradeId,
-            count: response.ok ? data.count : 0,
-            isLiked: response.ok ? data.isLiked : false
-          }
-        } catch (error) {
-          console.error(`Error fetching likes for trade ${tradeId}:`, error)
-          return {
-            tradeId,
-            count: 0,
-            isLiked: false
-          }
-        }
-      })
-      
-      const likesResults = await Promise.all(likesPromises)
-      
-      // Actualizar estado con todos los likes
-      const newLikesData: {[tradeId: string]: LikeData} = {}
-      likesResults.forEach(({ tradeId, count, isLiked }) => {
-        newLikesData[tradeId] = { count, isLiked }
-      })
-      
-      setLikesData(prev => ({ ...prev, ...newLikesData }))
-      
-    } catch (error) {
-      console.error('Error loading likes batch:', error)
-    }
-  }
-
-  // Función simplificada para cargar likes individuales (solo para nuevos trades)
-  const loadLikes = async (tradeId: string) => {
-    try {
-      const response = await fetch(`/api/likes?trade_id=${tradeId}`)
-      const data = await response.json()
-      
-      if (response.ok) {
-        setLikesData(prev => ({
-          ...prev,
-          [tradeId]: {
-            count: data.count,
-            isLiked: data.isLiked
-          }
-        }))
-      } else {
-        console.error('Error fetching likes:', data)
-        setLikesData(prev => ({
-          ...prev,
-          [tradeId]: {
-            count: 0,
-            isLiked: false
-          }
-        }))
-      }
-    } catch (error) {
-      console.error('Error fetching likes:', error)
-      setLikesData(prev => ({
-        ...prev,
-        [tradeId]: {
-          count: 0,
-          isLiked: false
-        }
-      }))
     }
   }
 
@@ -243,7 +176,7 @@ export default function FeedPage() {
       }
       
       // Recargar likes para asegurar consistencia
-      loadLikes(tradeId)
+      loadTrades(page)
       
     } catch (error) {
       console.error('Error toggling like:', error)

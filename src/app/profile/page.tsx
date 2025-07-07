@@ -157,112 +157,79 @@ export default function ProfilePage() {
     try {
       console.log('🔍 Loading user data for:', userId)
       
-      // Función auxiliar para hacer requests seguros
-      const safeSupabaseRequest = async (requestFn: Function, fallbackValue: any = null) => {
+      // Cargar todos los datos en paralelo para mejorar el rendimiento
+      const loadStats = async () => {
         try {
-          const result = await requestFn()
-          return result
+          const result = await supabase
+            .from('user_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single()
+          return { data: result.data, error: result.error, type: 'stats' }
         } catch (error) {
-          console.error('❌ Supabase request error:', error)
-          return { data: fallbackValue, error }
+          return { data: null, error, type: 'stats' }
         }
       }
       
-      // Cargar estadísticas con manejo seguro
-      console.log('📊 Loading stats...')
-      const statsResult = await safeSupabaseRequest(
-        () => supabase
-          .from('user_stats')
-          .select('*')
-          .eq('user_id', userId)
-          .single(),
-        null
-      )
-
-      console.log('📊 Stats query result:', statsResult)
-      
-      if (statsResult.error && statsResult.error.code !== 'PGRST116') {
-        console.error('❌ Error loading stats:', statsResult.error)
+      const loadProfile = async () => {
+        try {
+          const result = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single()
+          return { data: result.data, error: result.error, type: 'profile' }
+        } catch (error) {
+          return { data: null, error, type: 'profile' }
+        }
       }
       
-      setStats(statsResult.data)
+      const loadTrades = async () => {
+        try {
+          const result = await supabase
+            .from('trades')
+            .select('id, created_at, result, pnl_percentage')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(200) // Limitar a 200 trades más recientes para el grid
+          return { data: result.data || [], error: result.error, type: 'trades' }
+        } catch (error) {
+          return { data: [], error, type: 'trades' }
+        }
+      }
+      
+      const [statsResult, profileResult, tradesResult] = await Promise.all([
+        loadStats(),
+        loadProfile(),
+        loadTrades()
+      ])
 
-      // Cargar perfil con manejo seguro
-      console.log('👤 Loading profile...')
-      const profileResult = await safeSupabaseRequest(
-        () => supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single(),
-        null
-      )
-
-      console.log('👤 Profile query result:', profileResult)
+      // Procesar resultados
+      if (statsResult.error && (statsResult.error as any)?.code !== 'PGRST116') {
+        console.error('❌ Error loading stats:', statsResult.error)
+      } else {
+        console.log('✅ Stats loaded successfully')
+        setStats(statsResult.data)
+      }
       
       if (profileResult.error) {
         console.error('❌ Error loading profile:', profileResult.error)
-        if (profileResult.error.code === 'PGRST116') {
-          console.log('🚨 No profile found for user - attempting to create one')
-          
-          // Intentar crear perfil automáticamente
-          try {
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                username: user?.email?.split('@')[0] || 'Usuario',
-                account_balance: 1000.00,
-                is_premium: false
-              })
-              .select()
-              .single()
-            
-            if (createError) {
-              console.error('❌ Error creating profile:', createError)
-            } else {
-              console.log('✅ Profile created automatically:', newProfile)
-              setProfile(newProfile)
-            }
-          } catch (createErr) {
-            console.error('❌ Exception creating profile:', createErr)
-          }
-        }
       } else {
-        console.log('✅ Profile loaded successfully:', profileResult.data)
+        console.log('✅ Profile loaded successfully')
         setProfile(profileResult.data)
       }
-
-      // Cargar trades con manejo seguro
-      console.log('📈 Loading trades...')
-      const oneYearAgo = new Date()
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
       
-      const tradesResult = await safeSupabaseRequest(
-        () => supabase
-          .from('trades')
-          .select('id, created_at, result')
-          .eq('user_id', userId)
-          .gte('created_at', oneYearAgo.toISOString())
-          .order('created_at', { ascending: false }),
-        []
-      )
-
       if (tradesResult.error) {
         console.error('❌ Error loading trades:', tradesResult.error)
       } else {
-        console.log('📈 Loaded trades for activity grid:', tradesResult.data?.length || 0)
+        console.log('✅ Trades loaded successfully:', tradesResult.data?.length || 0)
         setTrades(tradesResult.data || [])
       }
-
-    } catch (err) {
-      console.error('💥 Critical error loading user data:', err)
-      // En caso de error crítico, establecer valores por defecto
-      setStats(null)
-      setProfile(null)
-      setTrades([])
-    } finally {
+      
       setLastUpdated(new Date())
+      
+    } catch (error) {
+      console.error('❌ Unexpected error loading user data:', error)
     }
   }
 
