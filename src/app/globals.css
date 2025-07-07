@@ -2,238 +2,190 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Optimizaciones de rendimiento */
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
-html,
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  max-width: 100vw;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1;
+  font-kerning: normal;
+  background-color: #010314;
+  color: #ffffff;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-  min-height: 100vh;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-  background-attachment: fixed;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+/* Optimizar animaciones */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.05) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: -1;
+/* Componentes reutilizables */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .card {
+    @apply bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-colors duration-200;
+  }
+  
+  .input-field {
+    @apply bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
+  }
+  
+  .spinner {
+    @apply animate-spin rounded-full border-4 border-t-transparent;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent;
+  }
+  
+  .glass-effect {
+    @apply bg-gray-900/50 backdrop-blur-sm border border-gray-800;
+  }
 }
 
-/* Scrollbar personalizada */
-::-webkit-scrollbar {
-  width: 8px;
+/* Utilidades personalizadas */
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  
+  .gpu-accelerated {
+    transform: translateZ(0);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+/* Optimizaciones específicas */
+.layout-container {
+  contain: layout;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
+.content-container {
+  contain: content;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+.paint-container {
+  contain: paint;
 }
 
-/* Slider de confianza */
-.confidence-slider-container {
-  position: relative;
-  width: 100%;
-  margin: 1rem 0;
+/* Animaciones optimizadas */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.confidence-slider {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(to right, 
-    #ef4444 0%, 
-    #f59e0b 25%, 
-    #eab308 50%, 
-    #84cc16 75%, 
-    #22c55e 100%);
-  outline: none;
-  opacity: 0.8;
-  transition: opacity 0.2s;
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-.confidence-slider::-webkit-slider-track {
-  width: 100%;
-  height: 8px;
-  cursor: pointer;
-  background: transparent;
-  border-radius: 4px;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.confidence-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 24px;
-  width: 24px;
-  border-radius: 50%;
-  background: white;
-  border: 3px solid #1f2937;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
 }
 
-.confidence-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
 }
 
-.confidence-slider::-moz-range-thumb {
-  height: 24px;
-  width: 24px;
-  border-radius: 50%;
-  background: white;
-  border: 3px solid #1f2937;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+.animate-pulse-fast {
+  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.confidence-slider::-moz-range-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+/* Mejoras de performance para listas largas */
+.virtual-list-item {
+  contain: strict;
+  height: auto;
+  min-height: 100px;
 }
 
-@keyframes scale-cycle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+/* Optimizaciones de imágenes */
+img {
+  max-width: 100%;
+  height: auto;
+  loading: lazy;
 }
 
-.animate-scale-cycle {
-  animation: scale-cycle 2s ease-in-out infinite;
-}
-
-/* Grid personalizado */
-.grid-cols-14 {
-  grid-template-columns: repeat(14, minmax(0, 1fr));
-}
-
-/* Slider simple */
-.slider-simple {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #374151;
-  outline: none;
-}
-
-.slider-simple::-webkit-slider-track {
-  width: 100%;
-  height: 6px;
-  cursor: pointer;
-  background: #374151;
-  border-radius: 3px;
-}
-
-.slider-simple::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: #3b82f6;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.slider-simple::-webkit-slider-thumb:hover {
-  background: #2563eb;
-}
-
-.slider-simple::-moz-range-track {
-  width: 100%;
-  height: 6px;
-  cursor: pointer;
-  background: #374151;
-  border-radius: 3px;
-  border: none;
-}
-
-.slider-simple::-moz-range-thumb {
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: #3b82f6;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.slider-simple::-moz-range-thumb:hover {
-  background: #2563eb;
-}
-
-/* Utilidades de texto */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+/* Mejoras de accesibilidad */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* Responsive design mejorado */
+/* Focus visible para mejor UX */
+.focus-visible:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Optimizaciones para dispositivos móviles */
 @media (max-width: 768px) {
-  html {
-    font-size: 14px;
+  .mobile-optimized {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
-
-  body {
-    padding: 0;
-    margin: 0;
-  }
-}
-
-@keyframes scale-cycle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-.animate-scale-cycle {
-  animation: scale-cycle 2s ease-in-out infinite;
-}
-
-/* Optimizaciones para móvil */
-@media (max-width: 768px) {
-  .touch-manipulation {
-    touch-action: manipulation;
-  }
-
-  /* Mejorar inputs en móvil */
-  input[type="text"], 
-  input[type="number"], 
-  input[type="email"], 
-  input[type="password"],
-  select,
-  textarea {
-    font-size: 16px; /* Previene zoom en iOS */
+  
+  .mobile-tap-highlight {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,6 +9,7 @@ import { Trophy, TrendingUp, TrendingDown, Minus, Clock, User, BarChart3, Heart,
 import { getSafeDisplayName, getUserInitials } from '@/utils/userUtils'
 import Layout from '@/components/Layout'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { useOptimizedUserData, useOptimizedFeed } from '@/hooks/useOptimizedData'
 
 interface PublicTrade {
   id: string
@@ -35,6 +36,7 @@ interface PublicTrade {
   feeling?: number
   likes_count: number
   is_premium: boolean
+  user_liked: boolean
 }
 
 interface LikeData {
@@ -43,12 +45,6 @@ interface LikeData {
 }
 
 export default function FeedPage() {
-  const [trades, setTrades] = useState<PublicTrade[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [page, setPage] = useState(1)
-  const [user, setUser] = useState<any>(null)
   const [showModal, setShowModal] = useState(false)
   const [selectedTrade, setSelectedTrade] = useState<PublicTrade | null>(null)
   const [likesData, setLikesData] = useState<{[tradeId: string]: LikeData}>({})
@@ -56,85 +52,32 @@ export default function FeedPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-      setUser(user)
-      
-      // Cargar datos del usuario
-      await loadUserData(user.id)
+  // Usar hooks optimizados
+  const { user, loading: userLoading } = useOptimizedUserData()
+  const { trades, loading: tradesLoading, error, hasMore, refetch, loadMore } = useOptimizedFeed(1, 20)
+
+  // Redirigir si no hay usuario
+  React.useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/auth/login')
     }
-    
-    getUser()
-  }, [router])
+  }, [user, userLoading, router])
 
-  const loadUserData = async (userId: string) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error loading user profile:', error)
-        return
-      }
-
-      setUser((prev: any) => ({ ...prev, profile }))
-    } catch (error) {
-      console.error('Error loading user data:', error)
+  // Sincronizar likes data cuando cambien los trades
+  React.useEffect(() => {
+    if (trades.length > 0) {
+      const newLikesData: {[tradeId: string]: LikeData} = {}
+      trades.forEach((trade: PublicTrade) => {
+        newLikesData[trade.id] = {
+          count: trade.likes_count,
+          isLiked: trade.user_liked
+        }
+      })
+      setLikesData(newLikesData)
     }
-  }
+  }, [trades])
 
-  const loadTrades = async (pageNumber = 1) => {
-    try {
-      setLoading(pageNumber === 1)
-      setLoadingMore(pageNumber > 1)
-      
-      const limit = 20
-      const offset = (pageNumber - 1) * limit
-      
-      const response = await fetch(`/api/feed?page=${pageNumber}&limit=${limit}`)
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Error loading trades')
-      }
-      
-      if (pageNumber === 1) {
-        setTrades(data.trades)
-      } else {
-        setTrades(prev => [...prev, ...data.trades])
-      }
-      
-      setHasMore(data.trades.length === limit)
-      
-      // Los likes ya vienen incluidos en la respuesta de la API
-      if (data.trades.length > 0) {
-        const newLikesData: {[tradeId: string]: LikeData} = {}
-        data.trades.forEach((trade: PublicTrade & { user_liked: boolean }) => {
-          newLikesData[trade.id] = {
-            count: trade.likes_count,
-            isLiked: trade.user_liked
-          }
-        })
-        setLikesData(prev => ({ ...prev, ...newLikesData }))
-      }
-      
-    } catch (error) {
-      console.error('Error loading trades:', error)
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }
-
-  const toggleLike = async (tradeId: string) => {
+  const toggleLike = useCallback(async (tradeId: string) => {
     if (loadingLike[tradeId]) return
     
     setLoadingLike(prev => ({ ...prev, [tradeId]: true }))
@@ -170,17 +113,16 @@ export default function FeedPage() {
           [tradeId]: currentLike
         }))
         
-        // Don't throw error, just log it
         console.error('Error toggling like:', errorData.error || 'Unknown error')
         return
       }
       
-      // Recargar likes para asegurar consistencia
-      loadTrades(page)
+      // Recargar datos después de un cambio exitoso
+      await refetch()
       
     } catch (error) {
       console.error('Error toggling like:', error)
-      // Ensure we revert to a safe state
+      // Revertir a estado seguro
       setLikesData(prev => ({
         ...prev,
         [tradeId]: prev[tradeId] || { count: 0, isLiked: false }
@@ -188,70 +130,209 @@ export default function FeedPage() {
     } finally {
       setLoadingLike(prev => ({ ...prev, [tradeId]: false }))
     }
-  }
+  }, [likesData, loadingLike, refetch])
 
-  const loadMore = async () => {
-    const nextPage = page + 1
-    setPage(nextPage)
-    await loadTrades(nextPage)
-  }
-
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut()
     router.push('/auth/login')
-  }
+  }, [supabase, router])
 
-  const formatDate = (dateString: string) => {
+  // Memoizar funciones de utilidad
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
     
-    if (diffInHours < 24) {
-      return `${diffInHours}h`
-    } else {
-      return `${Math.floor(diffInHours / 24)}d`
-    }
-  }
+    if (diffInHours < 1) return 'Hace menos de 1 hora'
+    if (diffInHours < 24) return `Hace ${diffInHours} horas`
+    if (diffInHours < 48) return 'Hace 1 día'
+    
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `Hace ${diffInDays} días`
+  }, [])
 
-  const getResultColor = (result: string) => {
+  const getResultColor = useCallback((result: string) => {
     switch (result) {
       case 'win': return 'text-green-400'
       case 'loss': return 'text-red-400'
-      case 'be': return 'text-yellow-400'
-      default: return 'text-gray-400'
+      default: return 'text-yellow-400'
     }
-  }
+  }, [])
 
-  const getResultIcon = (result: string) => {
+  const getResultIcon = useCallback((result: string) => {
     switch (result) {
       case 'win': return <TrendingUp className="w-4 h-4" />
       case 'loss': return <TrendingDown className="w-4 h-4" />
-      case 'be': return <Minus className="w-4 h-4" />
-      default: return <Clock className="w-4 h-4" />
+      default: return <Minus className="w-4 h-4" />
     }
-  }
+  }, [])
 
-  const getBiasColor = (bias: string) => {
+  const getBiasColor = useCallback((bias: string) => {
     return bias === 'alcista' ? 'text-green-400' : 'text-red-400'
-  }
+  }, [])
 
-  const openTradeModal = (trade: PublicTrade) => {
+  const openTradeModal = useCallback((trade: PublicTrade) => {
     setSelectedTrade(trade)
     setShowModal(true)
-  }
+  }, [])
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setShowModal(false)
     setSelectedTrade(null)
-  }
+  }, [])
 
-  useEffect(() => {
-    if (user) {
-      loadTrades()
-    }
-  }, [user])
+  // Memoizar la lista de trades para evitar re-renders
+  const tradesList = useMemo(() => {
+    return trades.map((trade) => {
+      const likeData = likesData[trade.id] || { count: trade.likes_count, isLiked: trade.user_liked }
+      
+      return (
+        <div key={trade.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-colors">
+          {/* Trade content */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+                {trade.avatar_url ? (
+                  <Image
+                    src={trade.avatar_url}
+                    alt={getSafeDisplayName(trade.username)}
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <span className="text-white font-medium text-sm">
+                    {getUserInitials(trade.username)}
+                  </span>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-white font-medium">
+                    {getSafeDisplayName(trade.username)}
+                  </span>
+                  {trade.is_premium && (
+                    <BadgeCheck className="w-4 h-4 text-blue-400" />
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 text-gray-400 text-sm">
+                  <Clock className="w-3 h-3" />
+                  <span>{formatDate(trade.created_at)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => toggleLike(trade.id)}
+                disabled={loadingLike[trade.id]}
+                className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm transition-colors ${
+                  likeData.isLiked 
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${likeData.isLiked ? 'fill-current' : ''}`} />
+                <span>{likeData.count}</span>
+              </button>
+            </div>
+          </div>
 
-  if (loading) {
+          {/* Trade details */}
+          <div className="space-y-3">
+            <h3 className="text-white font-semibold text-lg">{trade.title}</h3>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <span className="text-gray-400 text-sm">Par</span>
+                <div className="text-white font-medium">{trade.pair}</div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-sm">Timeframe</span>
+                <div className="text-white font-medium">{trade.timeframe}</div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-sm">Bias</span>
+                <div className={`font-medium ${getBiasColor(trade.bias)}`}>
+                  {trade.bias === 'alcista' ? 'Alcista' : 'Bajista'}
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-sm">Resultado</span>
+                <div className={`flex items-center space-x-1 font-medium ${getResultColor(trade.result)}`}>
+                  {getResultIcon(trade.result)}
+                  <span>{trade.result === 'win' ? 'Win' : trade.result === 'loss' ? 'Loss' : 'Break Even'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* P&L */}
+            <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-700">
+              <div>
+                <span className="text-gray-400 text-sm">P&L %</span>
+                <div className={`font-bold ${getResultColor(trade.result)}`}>
+                  {trade.pnl_percentage > 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-sm">P&L Pips</span>
+                <div className={`font-bold ${getResultColor(trade.result)}`}>
+                  {trade.pnl_pips > 0 ? '+' : ''}{trade.pnl_pips}
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-sm">P&L $</span>
+                <div className={`font-bold ${getResultColor(trade.result)}`}>
+                  {trade.pnl_money > 0 ? '+' : ''}${trade.pnl_money.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Screenshot */}
+            {trade.screenshot_url && (
+              <div className="mt-4">
+                <Image
+                  src={trade.screenshot_url}
+                  alt="Trade Screenshot"
+                  width={600}
+                  height={400}
+                  className="rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => openTradeModal(trade)}
+                />
+              </div>
+            )}
+
+            {/* Trader Stats */}
+            <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+              <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center space-x-1">
+                  <Trophy className="w-4 h-4 text-yellow-400" />
+                  <span className="text-gray-400">Wins:</span>
+                  <span className="text-green-400 font-medium">{trade.wins}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-400">Losses:</span>
+                  <span className="text-red-400 font-medium">{trade.losses}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-gray-400">WR:</span>
+                  <span className="text-blue-400 font-medium">{trade.win_rate.toFixed(1)}%</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-400">Total P&L</div>
+                <div className={`font-bold ${trade.total_pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {trade.total_pnl_percentage >= 0 ? '+' : ''}{trade.total_pnl_percentage.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    })
+  }, [trades, likesData, loadingLike, formatDate, getResultColor, getResultIcon, getBiasColor, openTradeModal, toggleLike])
+
+  // Mostrar loading si están cargando los datos del usuario o los trades
+  if (userLoading || tradesLoading) {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
@@ -261,406 +342,162 @@ export default function FeedPage() {
     )
   }
 
-  if (!user) {
-    return null
+  // Mostrar error si hay problemas cargando
+  if (error) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-400 text-lg mb-4">Error cargando el feed</div>
+            <button
+              onClick={refetch}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </Layout>
+    )
   }
 
   return (
     <Layout>
-      <div className="pb-20 md:pb-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Feed</h1>
-            <p className="text-gray-400">Descubre trades compartidos por la comunidad</p>
-          </div>
-
-          {/* Lista de trades */}
-          <div className="space-y-6">
-            {trades.map((trade) => {
-              // Get safe display name for each trade
-              const displayName = getSafeDisplayName(trade.username)
-              const userInitials = getUserInitials(trade.username)
-              
-              return (
-                <div 
-                  key={trade.id} 
-                  onClick={() => openTradeModal(trade)}
-                  className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors cursor-pointer"
-                >
-                  {/* Header del trade */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                        {trade.avatar_url ? (
-                          <img src={trade.avatar_url} alt={displayName} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <span className="text-white font-bold text-sm">{userInitials}</span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-1">
-                          <h3 className="text-white font-medium">{displayName}</h3>
-                          {(trade.is_premium || true) && (
-                            <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-400">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDate(trade.created_at)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4 text-sm">
-                      <div className="text-center">
-                        <div className="text-green-400 font-bold">{trade.wins}</div>
-                        <div className="text-gray-400">Wins</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-red-400 font-bold">{trade.losses}</div>
-                        <div className="text-gray-400">Losses</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-blue-400 font-bold">{trade.win_rate}%</div>
-                        <div className="text-gray-400">WR</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Título del trade */}
-                  <h2 className="text-xl font-semibold text-white mb-4">{trade.title}</h2>
-
-                  {/* Información del trade */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="bg-gray-800/50 rounded-lg p-3">
-                      <div className="text-gray-400 text-sm">Par</div>
-                      <div className="text-white font-medium">{trade.pair}</div>
-                    </div>
-                    <div className="bg-gray-800/50 rounded-lg p-3">
-                      <div className="text-gray-400 text-sm">Timeframe</div>
-                      <div className="text-white font-medium">{trade.timeframe}</div>
-                    </div>
-                    <div className="bg-gray-800/50 rounded-lg p-3">
-                      <div className="text-gray-400 text-sm">Bias</div>
-                      <div className={`font-medium ${getBiasColor(trade.bias)}`}>
-                        {trade.bias === 'alcista' ? '📈 Alcista' : '📉 Bajista'}
-                      </div>
-                    </div>
-                    <div className="bg-gray-800/50 rounded-lg p-3">
-                      <div className="text-gray-400 text-sm">R:R</div>
-                      <div className="text-white font-medium">{trade.risk_reward}</div>
-                    </div>
-                  </div>
-
-                  {/* Resultado */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`flex items-center space-x-2 ${getResultColor(trade.result)}`}>
-                      {getResultIcon(trade.result)}
-                      <span className="font-medium text-lg capitalize">{trade.result}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4 text-sm">
-                      {trade.pnl_percentage && (
-                        <div className="text-center">
-                          <div className={`font-bold ${trade.pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {trade.pnl_percentage >= 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%
-                          </div>
-                          <div className="text-gray-400">Porcentaje</div>
-                        </div>
-                      )}
-                      {trade.pnl_pips && (
-                        <div className="text-center">
-                          <div className={`font-bold ${trade.pnl_pips >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {trade.pnl_pips >= 0 ? '+' : ''}{trade.pnl_pips.toFixed(1)}
-                          </div>
-                          <div className="text-gray-400">Pips</div>
-                        </div>
-                      )}
-                      {trade.pnl_money && (
-                        <div className="text-center">
-                          <div className={`font-bold ${trade.pnl_money >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {trade.pnl_money >= 0 ? '+' : ''}${Math.abs(trade.pnl_money).toFixed(2)}
-                          </div>
-                          <div className="text-gray-400">Dinero</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Screenshot */}
-                  {trade.screenshot_url && (
-                    <div className="mb-4">
-                      <img
-                        src={trade.screenshot_url}
-                        alt="Trade Screenshot"
-                        className="w-full max-h-96 object-contain rounded-lg bg-gray-800"
-                      />
-                    </div>
-                  )}
-
-                  {/* Botones de likes */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-                    <div className="flex items-center space-x-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleLike(trade.id)
-                        }}
-                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                          likesData[trade.id]?.isLiked 
-                            ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30' 
-                            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
-                        }`}
-                      >
-                        <Heart className={`w-4 h-4 ${likesData[trade.id]?.isLiked ? 'fill-current' : ''}`} />
-                        <span className="text-sm font-medium">
-                          {likesData[trade.id]?.count || 0}
-                        </span>
-                      </button>
-                    </div>
-                    
-                    <div className="text-xs text-gray-500">
-                      {formatDate(trade.created_at)}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Botón cargar más */}
-          {hasMore && (
-            <div className="text-center mt-8">
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors"
-              >
-                {loadingMore ? 'Cargando...' : 'Cargar más trades'}
-              </button>
-            </div>
-          )}
-
-          {/* Mensaje si no hay más trades */}
-          {!hasMore && trades.length > 0 && (
-            <div className="text-center mt-8 text-gray-400">
-              No hay más trades para mostrar
-            </div>
-          )}
-
-          {/* Mensaje si no hay trades */}
-          {trades.length === 0 && !loading && (
-            <div className="text-center mt-8">
-              <div className="text-gray-400 mb-4">
-                <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>No hay trades públicos aún</p>
-                <p className="text-sm mt-2">¡Sé el primero en compartir un trade!</p>
-              </div>
-              <Link
-                href="/"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
-              >
-                Crear Trade
-              </Link>
-            </div>
-          )}
+      <div className="min-h-screen p-4 md:p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+            Feed de Trading
+          </h1>
+          <p className="text-gray-400">
+            Descubre los trades públicos de la comunidad
+          </p>
         </div>
+
+        {/* Trades List */}
+        <div className="space-y-6">
+          {tradesList}
+        </div>
+
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={loadMore}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Cargar más trades
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {trades.length === 0 && !tradesLoading && (
+          <div className="text-center py-12">
+            <TrendingUp className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No hay trades públicos</h3>
+            <p className="text-gray-400 mb-6">
+              Sé el primero en compartir un trade público con la comunidad
+            </p>
+            <Link
+              href="/"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <BarChart3 className="w-5 h-5 mr-2" />
+              Crear Trade
+            </Link>
+          </div>
+        )}
       </div>
 
-      {/* Modal de detalle del trade */}
+      {/* Modal para ver trade completo */}
       {showModal && selectedTrade && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header del modal */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                  {selectedTrade.avatar_url ? (
-                    <img src={selectedTrade.avatar_url} alt={getSafeDisplayName(selectedTrade.username)} className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <span className="text-white font-bold text-sm">{getUserInitials(selectedTrade.username)}</span>
-                  )}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
-                  <div className="flex items-center space-x-1 text-gray-400 text-sm">
-                    <span>por {getSafeDisplayName(selectedTrade.username)}</span>
-                    {selectedTrade.is_premium && (
-                      <BadgeCheck className="w-5 h-5 text-blue-400 drop-shadow-sm" />
-                    )}
-                  </div>
-                </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* Contenido del modal */}
-            <div className="p-6 space-y-6">
-              {/* Imagen */}
+              
               {selectedTrade.screenshot_url && (
-                <div>
-                  <img
+                <div className="mb-6">
+                  <Image
                     src={selectedTrade.screenshot_url}
-                    alt={`Screenshot de ${selectedTrade.title}`}
-                    className="w-full rounded-lg"
+                    alt="Trade Screenshot"
+                    width={800}
+                    height={600}
+                    className="rounded-lg w-full"
                   />
                 </div>
               )}
               
-              {/* Información del trade */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
                   <div>
-                    <span className="text-gray-400 text-sm">Par:</span>
-                    <div className="text-white font-medium">{selectedTrade.pair}</div>
+                    <span className="text-gray-400 text-sm">Par de divisas</span>
+                    <div className="text-white font-medium text-lg">{selectedTrade.pair}</div>
                   </div>
                   <div>
-                    <span className="text-gray-400 text-sm">Timeframe:</span>
+                    <span className="text-gray-400 text-sm">Timeframe</span>
                     <div className="text-white font-medium">{selectedTrade.timeframe}</div>
                   </div>
-                  {selectedTrade.session && (
-                    <div>
-                      <span className="text-gray-400 text-sm">Sesión:</span>
-                      <div className="text-white font-medium">
-                        {selectedTrade.session === 'asian' ? 'Asiática' : 
-                         selectedTrade.session === 'london' ? 'Londres' : 
-                         selectedTrade.session === 'newyork' ? 'Nueva York' : 
-                         'Solapamiento'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-3">
                   <div>
-                    <span className="text-gray-400 text-sm">Bias:</span>
+                    <span className="text-gray-400 text-sm">Bias</span>
                     <div className={`font-medium ${getBiasColor(selectedTrade.bias)}`}>
                       {selectedTrade.bias === 'alcista' ? 'Alcista' : 'Bajista'}
                     </div>
                   </div>
                   <div>
-                    <span className="text-gray-400 text-sm">Resultado:</span>
-                    <div className={`font-medium ${getResultColor(selectedTrade.result)}`}>
-                      {selectedTrade.result === 'win' ? 'Win' : 
-                       selectedTrade.result === 'loss' ? 'Loss' : 
-                       selectedTrade.result === 'be' ? 'Break Even' : selectedTrade.result}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 text-sm">Risk:Reward:</span>
+                    <span className="text-gray-400 text-sm">Risk:Reward</span>
                     <div className="text-white font-medium">{selectedTrade.risk_reward}</div>
                   </div>
                 </div>
-              </div>
-              
-              {/* Estadísticas del trader */}
-              <div className="bg-gray-900/50 rounded-lg p-4">
-                <h3 className="text-gray-400 text-sm mb-3">Estadísticas del Trader</h3>
-                <div className="grid grid-cols-3 gap-4 text-center">
+                
+                <div className="space-y-4">
                   <div>
-                    <div className="text-xl font-bold text-green-400">{selectedTrade.wins}</div>
-                    <div className="text-gray-500 text-xs">Wins</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-red-400">{selectedTrade.losses}</div>
-                    <div className="text-gray-500 text-xs">Losses</div>
+                    <span className="text-gray-400 text-sm">Resultado</span>
+                    <div className={`flex items-center space-x-2 font-medium ${getResultColor(selectedTrade.result)}`}>
+                      {getResultIcon(selectedTrade.result)}
+                      <span>{selectedTrade.result === 'win' ? 'Win' : selectedTrade.result === 'loss' ? 'Loss' : 'Break Even'}</span>
+                    </div>
                   </div>
                   <div>
-                    <div className="text-xl font-bold text-blue-400">{selectedTrade.win_rate}%</div>
-                    <div className="text-gray-500 text-xs">Win Rate</div>
+                    <span className="text-gray-400 text-sm">P&L Porcentaje</span>
+                    <div className={`font-bold text-lg ${getResultColor(selectedTrade.result)}`}>
+                      {selectedTrade.pnl_percentage > 0 ? '+' : ''}{selectedTrade.pnl_percentage.toFixed(2)}%
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              {/* P&L */}
-              {(selectedTrade.pnl_percentage || selectedTrade.pnl_money || selectedTrade.pnl_pips) && (
-                <div className="bg-gray-900/50 rounded-lg p-4">
-                  <h3 className="text-gray-400 text-sm mb-3">Resultado del Trade</h3>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    {selectedTrade.pnl_percentage && (
-                      <div>
-                        <div className={`text-xl font-bold ${
-                          selectedTrade.pnl_percentage > 0 ? 'text-green-400' : 
-                          selectedTrade.pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
-                        }`}>
-                          {selectedTrade.pnl_percentage > 0 ? '+' : ''}{selectedTrade.pnl_percentage.toFixed(2)}%
-                        </div>
-                        <div className="text-gray-500 text-xs">Porcentaje</div>
-                      </div>
-                    )}
-                    {selectedTrade.pnl_money && (
-                      <div>
-                        <div className={`text-xl font-bold ${
-                          selectedTrade.pnl_money > 0 ? 'text-green-400' : 
-                          selectedTrade.pnl_money < 0 ? 'text-red-400' : 'text-gray-400'
-                        }`}>
-                          {selectedTrade.pnl_money > 0 ? '+' : ''}${Math.abs(selectedTrade.pnl_money).toFixed(2)}
-                        </div>
-                        <div className="text-gray-500 text-xs">Dinero</div>
-                      </div>
-                    )}
-                    {selectedTrade.pnl_pips && (
-                      <div>
-                        <div className={`text-xl font-bold ${
-                          selectedTrade.pnl_pips > 0 ? 'text-green-400' : 
-                          selectedTrade.pnl_pips < 0 ? 'text-red-400' : 'text-gray-400'
-                        }`}>
-                          {selectedTrade.pnl_pips > 0 ? '+' : ''}{selectedTrade.pnl_pips.toFixed(1)}
-                        </div>
-                        <div className="text-gray-500 text-xs">Pips</div>
-                      </div>
-                    )}
+                  <div>
+                    <span className="text-gray-400 text-sm">P&L en Pips</span>
+                    <div className={`font-bold ${getResultColor(selectedTrade.result)}`}>
+                      {selectedTrade.pnl_pips > 0 ? '+' : ''}{selectedTrade.pnl_pips}
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {/* Sentimiento */}
-              {selectedTrade.feeling && (
-                <div className="bg-gray-900/50 rounded-lg p-4">
-                  <h3 className="text-gray-400 text-sm mb-3">Análisis de Sentimiento</h3>
-                  <div className="flex items-center justify-center space-x-4">
-                    <span className="text-3xl">
-                      {selectedTrade.feeling <= 30 ? '😞' : 
-                       selectedTrade.feeling <= 70 ? '🤔' : '😊'}
-                    </span>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{selectedTrade.feeling}%</div>
-                      <div className="text-gray-400 text-sm">
-                        {selectedTrade.feeling <= 30 ? 'Frustrado' : 
-                         selectedTrade.feeling <= 70 ? 'Neutral' : 'Confiable'}
-                      </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">P&L en Dinero</span>
+                    <div className={`font-bold ${getResultColor(selectedTrade.result)}`}>
+                      {selectedTrade.pnl_money > 0 ? '+' : ''}${selectedTrade.pnl_money.toFixed(2)}
                     </div>
                   </div>
                 </div>
-              )}
-              
-              {/* Confluencias */}
-              {selectedTrade.confluences && (
-                <div className="bg-gray-900/50 rounded-lg p-4">
-                  <h3 className="text-gray-400 text-sm mb-3">Confluencias</h3>
-                  <p className="text-white">{selectedTrade.confluences}</p>
-                </div>
-              )}
-              
-              {/* Descripción */}
-              {selectedTrade.description && (
-                <div className="bg-gray-900/50 rounded-lg p-4">
-                  <h3 className="text-gray-400 text-sm mb-3">Descripción</h3>
-                  <p className="text-white">{selectedTrade.description}</p>
-                </div>
-              )}
-              
-              {/* Fecha */}
-              <div className="text-center text-gray-400 text-sm pt-4 border-t border-gray-700">
-                Publicado el {formatDate(selectedTrade.created_at)}
               </div>
+              
+              {selectedTrade.description && (
+                <div className="mt-6">
+                  <span className="text-gray-400 text-sm">Descripción</span>
+                  <div className="text-white mt-2 p-4 bg-gray-700 rounded-lg">
+                    {selectedTrade.description}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

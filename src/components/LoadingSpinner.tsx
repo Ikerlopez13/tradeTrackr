@@ -1,19 +1,28 @@
-import Image from 'next/image'
+import React from 'react'
 
-export default function LoadingSpinner({ size = 80 }: { size?: number }) {
+interface LoadingSpinnerProps {
+  size?: number
+  color?: string
+  className?: string
+}
+
+const LoadingSpinner = React.memo(({ size = 40, color = '#3B82F6', className = '' }: LoadingSpinnerProps) => {
   return (
-    <div className="flex items-center justify-center">
-      <div className="relative">
-        <Image
-          src="/logo.jpeg"
-          alt="TradeTrackr Logo"
-          width={size}
-          height={size}
-          priority
-          unoptimized
-          className="animate-scale-cycle rounded-xl"
-        />
-      </div>
+    <div className={`flex items-center justify-center ${className}`}>
+      <div
+        className="animate-spin rounded-full border-4 border-t-transparent"
+        style={{
+          width: size,
+          height: size,
+          borderColor: `${color}20`,
+          borderTopColor: color,
+          animationDuration: '1s'
+        }}
+      />
     </div>
   )
-} 
+})
+
+LoadingSpinner.displayName = 'LoadingSpinner'
+
+export default LoadingSpinner 

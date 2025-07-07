@@ -1,29 +1,36 @@
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
 
-// GET - Obtener trades públicos para el feed
-export async function GET(request: NextRequest) {
+// Cache de respuestas para mejorar rendimiento
+const responseCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 2 * 60 * 1000 // 2 minutos
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50) // Máximo 50 por página
+  const offset = (page - 1) * limit
+
   try {
-    const supabase = await createClient()
-    
-    // Verificar autenticación
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+    // Verificar cache primero
+    const cacheKey = `feed-${page}-${limit}`
+    const cached = responseCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return NextResponse.json(cached.data, {
+        headers: {
+          'Cache-Control': 'public, max-age=120, s-maxage=120',
+          'CDN-Cache-Control': 'public, max-age=120'
+        }
+      })
     }
 
-    // Obtener parámetros de consulta
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const offset = (page - 1) * limit
+    const supabase = await createClient()
 
-    // Obtener trades públicos SIN JOIN (esto estaba causando el error)
-    const { data: trades, error } = await supabase
+    // Obtener usuario actual para likes
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // OPTIMIZACIÓN: Una sola consulta con JOIN para obtener todo
+    const { data: tradesData, error } = await supabase
       .from('trades')
       .select(`
         id,
@@ -38,7 +45,22 @@ export async function GET(request: NextRequest) {
         pnl_money,
         screenshot_url,
         created_at,
-        user_id
+        user_id,
+        description,
+        confluences,
+        session,
+        feeling,
+        profiles!inner(
+          username,
+          avatar_url,
+          is_premium
+        ),
+        user_stats!inner(
+          wins,
+          losses,
+          win_rate,
+          total_pnl_percentage
+        )
       `)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
@@ -46,88 +68,52 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching trades:', error)
-      return NextResponse.json(
-        { error: 'Error al obtener trades' },
-        { status: 500 }
-      )
+      throw new Error('Error al obtener trades')
     }
 
-    if (!trades || trades.length === 0) {
-      return NextResponse.json({
-        trades: [],
-        pagination: {
-          page,
-          limit,
-          totalCount: 0,
-          totalPages: 0,
-          hasMore: false
-        }
-      })
-    }
+    const trades = tradesData || []
 
-    // Obtener profiles, estadísticas y likes en paralelo
-    const tradeIds = trades.map(trade => trade.id)
-    const userIds = [...new Set(trades.map(trade => trade.user_id))]
-    
-    const [profilesResult, likesResult, statsResult] = await Promise.all([
-      // Obtener profiles de usuarios
-      supabase
-        .from('profiles')
-        .select('id, username, avatar_url, is_premium')
-        .in('id', userIds),
+    // OPTIMIZACIÓN: Obtener likes en paralelo solo si hay trades
+    let userLikesMap = new Map()
+    let likesCountsMap = new Map()
+
+    if (trades.length > 0) {
+      const tradeIds = trades.map((t: any) => t.id)
       
-      // Obtener likes de todos los trades de una vez
-      supabase
-        .from('trade_likes')
-        .select('trade_id, user_id')
-        .in('trade_id', tradeIds),
-      
-      // Obtener estadísticas de usuarios
-      supabase
-        .from('user_stats')
-        .select('user_id, wins, losses, win_rate, total_pnl_percentage')
-        .in('user_id', userIds)
-    ])
+      const [userLikesResult, likesCountsResult] = await Promise.all([
+        // Likes del usuario actual
+        user ? supabase
+          .from('trade_likes')
+          .select('trade_id')
+          .eq('user_id', user.id)
+          .in('trade_id', tradeIds) : Promise.resolve({ data: [] }),
+        
+        // Contar likes por trade con una sola consulta
+        supabase
+          .from('trade_likes')
+          .select('trade_id')
+          .in('trade_id', tradeIds)
+      ])
 
-    // Procesar profiles
-    const profilesData: { [userId: string]: any } = {}
-    if (profilesResult.data) {
-      profilesResult.data.forEach(profile => {
-        profilesData[profile.id] = profile
+      // Procesar likes del usuario
+      userLikesResult.data?.forEach((like: any) => {
+        userLikesMap.set(like.trade_id, true)
+      })
+
+      // Procesar conteos de likes
+      likesCountsResult.data?.forEach((like: any) => {
+        const currentCount = likesCountsMap.get(like.trade_id) || 0
+        likesCountsMap.set(like.trade_id, currentCount + 1)
       })
     }
 
-    // Procesar likes
-    const likesData: { [tradeId: string]: { count: number; userLiked: boolean } } = {}
-    tradeIds.forEach(tradeId => {
-      likesData[tradeId] = { count: 0, userLiked: false }
-    })
+    // Combinar datos de manera eficiente
+    const enrichedTrades = trades.map((trade: any) => {
+      const profile = trade.profiles
+      const stats = trade.user_stats
+      const likesCount = likesCountsMap.get(trade.id) || 0
+      const userLiked = userLikesMap.has(trade.id)
 
-    if (likesResult.data) {
-      likesResult.data.forEach(like => {
-        if (likesData[like.trade_id]) {
-          likesData[like.trade_id].count++
-          if (like.user_id === user.id) {
-            likesData[like.trade_id].userLiked = true
-          }
-        }
-      })
-    }
-
-    // Procesar estadísticas de usuarios
-    const userStats: { [userId: string]: any } = {}
-    if (statsResult.data) {
-      statsResult.data.forEach(stat => {
-        userStats[stat.user_id] = stat
-      })
-    }
-
-    // Formatear los datos para el frontend
-    const formattedTrades = trades.map((trade: any) => {
-      const profile = profilesData[trade.user_id] || {}
-      const likes = likesData[trade.id] || { count: 0, userLiked: false }
-      const stats = userStats[trade.user_id] || {}
-      
       return {
         id: trade.id,
         title: trade.title,
@@ -141,48 +127,58 @@ export async function GET(request: NextRequest) {
         pnl_money: trade.pnl_money,
         screenshot_url: trade.screenshot_url,
         created_at: trade.created_at,
-        description: null,
-        confluences: null,
-        session: null,
-        feeling: null,
-        username: profile.username || 'Usuario',
-        avatar_url: profile.avatar_url,
-        is_premium: profile.is_premium || false,
-        wins: stats.wins || 0,
-        losses: stats.losses || 0,
-        win_rate: stats.win_rate || 0,
-        total_pnl_percentage: stats.total_pnl_percentage || 0,
-        likes_count: likes.count,
-        user_liked: likes.userLiked
+        user_id: trade.user_id,
+        description: trade.description,
+        confluences: trade.confluences,
+        session: trade.session,
+        feeling: trade.feeling,
+        username: profile?.username || 'Usuario',
+        avatar_url: profile?.avatar_url || null,
+        is_premium: profile?.is_premium || false,
+        wins: stats?.wins || 0,
+        losses: stats?.losses || 0,
+        win_rate: stats?.win_rate || 0,
+        total_pnl_percentage: stats?.total_pnl_percentage || 0,
+        likes_count: likesCount,
+        user_liked: userLiked
       }
     })
 
-    // Obtener el conteo total para paginación
-    const { count: totalCount, error: countError } = await supabase
-      .from('trades')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_public', true)
-
-    if (countError) {
-      console.error('Error counting trades:', countError)
-    }
-
-    const totalPages = Math.ceil((totalCount || 0) / limit)
-    const hasMore = page < totalPages
-
-    return NextResponse.json({
-      trades: formattedTrades,
+    const responseData = {
+      trades: enrichedTrades,
       pagination: {
         page,
         limit,
-        totalCount,
-        totalPages,
-        hasMore
+        total: trades.length,
+        hasMore: trades.length === limit
+      }
+    }
+
+    // Guardar en cache
+    responseCache.set(cacheKey, {
+      data: responseData,
+      timestamp: Date.now()
+    })
+
+    // Limpiar cache viejo cada 100 requests
+    if (responseCache.size > 100) {
+      const now = Date.now()
+      for (const [key, value] of responseCache.entries()) {
+        if (now - value.timestamp > CACHE_DURATION) {
+          responseCache.delete(key)
+        }
+      }
+    }
+
+    return NextResponse.json(responseData, {
+      headers: {
+        'Cache-Control': 'public, max-age=120, s-maxage=120',
+        'CDN-Cache-Control': 'public, max-age=120'
       }
     })
 
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Error in feed API:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
