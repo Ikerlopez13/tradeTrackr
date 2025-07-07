@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Temporarily disabled due to critters dependency issue
     optimizePackageImports: [
       'lucide-react',
       '@supabase/supabase-js',
