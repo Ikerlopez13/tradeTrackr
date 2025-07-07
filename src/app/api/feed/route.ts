@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
 
-    // Obtener trades públicos con conteo de likes optimizado
+    // Obtener trades públicos SIN JOIN (esto estaba causando el error)
     const { data: trades, error } = await supabase
       .from('trades')
       .select(`
@@ -38,11 +38,7 @@ export async function GET(request: NextRequest) {
         pnl_money,
         screenshot_url,
         created_at,
-        profiles!inner (
-          username,
-          avatar_url,
-          is_premium
-        )
+        user_id
       `)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
@@ -69,12 +65,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Obtener estadísticas de usuarios y likes en paralelo
+    // Obtener profiles, estadísticas y likes en paralelo
     const tradeIds = trades.map(trade => trade.id)
-    const profilesData = trades.map(trade => trade.profiles).filter(Boolean)
-    const userIds = [...new Set(profilesData.map((profile: any) => profile.username).filter(Boolean))]
+    const userIds = [...new Set(trades.map(trade => trade.user_id))]
     
-    const [likesResult, statsResult] = await Promise.all([
+    const [profilesResult, likesResult, statsResult] = await Promise.all([
+      // Obtener profiles de usuarios
+      supabase
+        .from('profiles')
+        .select('id, username, avatar_url, is_premium')
+        .in('id', userIds),
+      
       // Obtener likes de todos los trades de una vez
       supabase
         .from('trade_likes')
@@ -87,6 +88,14 @@ export async function GET(request: NextRequest) {
         .select('user_id, wins, losses, win_rate, total_pnl_percentage')
         .in('user_id', userIds)
     ])
+
+    // Procesar profiles
+    const profilesData: { [userId: string]: any } = {}
+    if (profilesResult.data) {
+      profilesResult.data.forEach(profile => {
+        profilesData[profile.id] = profile
+      })
+    }
 
     // Procesar likes
     const likesData: { [tradeId: string]: { count: number; userLiked: boolean } } = {}
@@ -115,9 +124,9 @@ export async function GET(request: NextRequest) {
 
     // Formatear los datos para el frontend
     const formattedTrades = trades.map((trade: any) => {
-      const profile = trade.profiles
+      const profile = profilesData[trade.user_id] || {}
       const likes = likesData[trade.id] || { count: 0, userLiked: false }
-      const stats = userStats[profile?.username] || {}
+      const stats = userStats[trade.user_id] || {}
       
       return {
         id: trade.id,
@@ -136,9 +145,9 @@ export async function GET(request: NextRequest) {
         confluences: null,
         session: null,
         feeling: null,
-        username: profile?.username || 'Usuario',
-        avatar_url: profile?.avatar_url,
-        is_premium: profile?.is_premium || false,
+        username: profile.username || 'Usuario',
+        avatar_url: profile.avatar_url,
+        is_premium: profile.is_premium || false,
         wins: stats.wins || 0,
         losses: stats.losses || 0,
         win_rate: stats.win_rate || 0,
