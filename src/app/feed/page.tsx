@@ -270,19 +270,19 @@ export default function FeedPage() {
               <div>
                 <span className="text-gray-400 text-sm">P&L %</span>
                 <div className={`font-bold ${getResultColor(trade.result)}`}>
-                  {trade.pnl_percentage > 0 ? '+' : ''}{trade.pnl_percentage.toFixed(2)}%
+                  {(trade.pnl_percentage || 0) > 0 ? '+' : ''}{(trade.pnl_percentage || 0).toFixed(2)}%
                 </div>
               </div>
               <div>
                 <span className="text-gray-400 text-sm">P&L Pips</span>
                 <div className={`font-bold ${getResultColor(trade.result)}`}>
-                  {trade.pnl_pips > 0 ? '+' : ''}{trade.pnl_pips}
+                  {(trade.pnl_pips || 0) > 0 ? '+' : ''}{trade.pnl_pips || 0}
                 </div>
               </div>
               <div>
                 <span className="text-gray-400 text-sm">P&L $</span>
                 <div className={`font-bold ${getResultColor(trade.result)}`}>
-                  {trade.pnl_money > 0 ? '+' : ''}${trade.pnl_money.toFixed(2)}
+                  {(trade.pnl_money || 0) > 0 ? '+' : ''}${(trade.pnl_money || 0).toFixed(2)}
                 </div>
               </div>
             </div>
@@ -315,13 +315,13 @@ export default function FeedPage() {
                 </div>
                 <div className="flex items-center space-x-1">
                   <span className="text-gray-400">WR:</span>
-                  <span className="text-blue-400 font-medium">{trade.win_rate.toFixed(1)}%</span>
+                  <span className="text-blue-400 font-medium">{(trade.win_rate || 0).toFixed(1)}%</span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-sm text-gray-400">Total P&L</div>
-                <div className={`font-bold ${trade.total_pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {trade.total_pnl_percentage >= 0 ? '+' : ''}{trade.total_pnl_percentage.toFixed(2)}%
+                <div className={`font-bold ${(trade.total_pnl_percentage || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {(trade.total_pnl_percentage || 0) >= 0 ? '+' : ''}{(trade.total_pnl_percentage || 0).toFixed(2)}%
                 </div>
               </div>
             </div>
@@ -335,8 +335,11 @@ export default function FeedPage() {
   if (userLoading || tradesLoading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <LoadingSpinner size={100} />
+        <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
+          <LoadingSpinner 
+            size={120} 
+            className="text-white"
+          />
         </div>
       </Layout>
     )
@@ -346,7 +349,7 @@ export default function FeedPage() {
   if (error) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
           <div className="text-center">
             <div className="text-red-400 text-lg mb-4">Error cargando el feed</div>
             <button
@@ -363,7 +366,7 @@ export default function FeedPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen p-4 md:p-6">
+      <div className="min-h-screen p-4 md:p-6" style={{backgroundColor: '#010314'}}>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
@@ -413,7 +416,7 @@ export default function FeedPage() {
       {/* Modal para ver trade completo */}
       {showModal && selectedTrade && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{backgroundColor: '#010314', border: '1px solid #374151'}}>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-xl font-bold text-white">{selectedTrade.title}</h2>
@@ -472,19 +475,19 @@ export default function FeedPage() {
                   <div>
                     <span className="text-gray-400 text-sm">P&L Porcentaje</span>
                     <div className={`font-bold text-lg ${getResultColor(selectedTrade.result)}`}>
-                      {selectedTrade.pnl_percentage > 0 ? '+' : ''}{selectedTrade.pnl_percentage.toFixed(2)}%
+                      {(selectedTrade.pnl_percentage || 0) > 0 ? '+' : ''}{(selectedTrade.pnl_percentage || 0).toFixed(2)}%
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-400 text-sm">P&L en Pips</span>
                     <div className={`font-bold ${getResultColor(selectedTrade.result)}`}>
-                      {selectedTrade.pnl_pips > 0 ? '+' : ''}{selectedTrade.pnl_pips}
+                      {(selectedTrade.pnl_pips || 0) > 0 ? '+' : ''}{selectedTrade.pnl_pips || 0}
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-400 text-sm">P&L en Dinero</span>
                     <div className={`font-bold ${getResultColor(selectedTrade.result)}`}>
-                      {selectedTrade.pnl_money > 0 ? '+' : ''}${selectedTrade.pnl_money.toFixed(2)}
+                      {(selectedTrade.pnl_money || 0) > 0 ? '+' : ''}${(selectedTrade.pnl_money || 0).toFixed(2)}
                     </div>
                   </div>
                 </div>

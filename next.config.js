@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Experimental optimizations
+  // Performance optimizations
   experimental: {
     // Optimize package imports
     optimizePackageImports: [
@@ -8,72 +8,70 @@ const nextConfig = {
       'date-fns',
       'react-hook-form',
       'zod'
-    ]
+    ],
+    // Enable turbo mode for faster builds
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js'
+        }
+      }
+    }
   },
 
-  // Server external packages
-  serverExternalPackages: ['@supabase/supabase-js'],
+  // Transpile packages that need it
+  transpilePackages: [
+    '@supabase/supabase-js',
+    '@supabase/auth-helpers-nextjs',
+    '@supabase/auth-helpers-react'
+  ],
+
+  // Basic optimizations
+  reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
+
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+    unoptimized: process.env.NODE_ENV === 'development'
+  },
 
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
-    // Optimize bundle size
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, 'src')
-    }
-
-    // Fix self is not defined error
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false
-      }
-    }
-
     // Production optimizations
     if (!dev) {
-      // Tree shaking optimization
       config.optimization = {
         ...config.optimization,
-        usedExports: true,
-        sideEffects: false
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
       }
+    }
+
+    // Resolve aliases
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
     }
 
     return config
   },
 
-  // Image optimization
-  images: {
-    formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384]
-  },
-
-  // Compress responses
-  compress: true,
-
-  // Power optimizations
-  poweredByHeader: false,
-
-  // Static optimization
-  trailingSlash: false,
-
-  // Performance optimizations
-  reactStrictMode: true,
-
-  // Compiler optimizations
-  compiler: {
-    // Remove console.log in production
-    removeConsole: process.env.NODE_ENV === 'production'
-  },
-
-  // Headers for better caching
+  // Headers for caching
   async headers() {
     return [
       {
@@ -81,38 +79,29 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            value: 'nosniff',
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'DENY',
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block'
-          }
-        ]
+            value: '1; mode=block',
+          },
+        ],
       },
       {
         source: '/api/(.*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=60, s-maxage=60'
-          }
-        ]
+            value: 'public, max-age=0, s-maxage=86400',
+          },
+        ],
       },
-      {
-        source: '/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
-        ]
-      }
     ]
-  }
+  },
 }
 
 module.exports = nextConfig 

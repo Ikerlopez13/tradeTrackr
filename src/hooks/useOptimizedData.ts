@@ -1,225 +1,278 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-// Cache para evitar consultas duplicadas
+// Cache en memoria para evitar requests duplicados
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
-// Función para obtener datos del cache
-const getCachedData = (key: string) => {
-  const cached = cache.get(key)
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data
-  }
-  return null
-}
-
-// Función para guardar datos en cache
-const setCachedData = (key: string, data: any) => {
-  cache.set(key, { data, timestamp: Date.now() })
-}
-
-// Hook optimizado para datos del usuario
 export const useOptimizedUserData = () => {
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
+  const [userData, setUserData] = useState<{
+    user: any;
+    profile: any;
+    loading: boolean;
+    error: string | null;
+  }>({
+    user: null,
+    profile: null,
+    loading: true,
+    error: null
+  })
+
   const supabase = createClient()
 
   const loadUserData = useCallback(async () => {
     try {
-      setLoading(true)
-      setError(null)
-
-      // Verificar cache primero
-      const cacheKey = 'user-data'
-      const cachedData = getCachedData(cacheKey)
-      if (cachedData) {
-        setUser(cachedData.user)
-        setProfile(cachedData.profile)
-        setLoading(false)
+      // Obtener usuario directamente sin cache complejo
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError) {
+        console.error('Auth error:', userError)
+        setUserData({
+          user: null,
+          profile: null,
+          loading: false,
+          error: userError.message
+        })
         return
       }
 
-      // Cargar datos del usuario en paralelo
-      const [userResult, profileResult] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.auth.getUser().then(({ data: { user } }) => 
-          user ? supabase.from('profiles').select('*').eq('id', user.id).single() : null
-        )
-      ])
-
-      if (userResult.error) {
-        throw userResult.error
+      if (!user) {
+        setUserData({
+          user: null,
+          profile: null,
+          loading: false,
+          error: null
+        })
+        return
       }
 
-      const userData = userResult.data.user
-      const profileData = profileResult?.data || null
+      // Obtener perfil en paralelo (no bloquear la UI)
+      const profilePromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-      // Guardar en cache
-      setCachedData(cacheKey, { user: userData, profile: profileData })
+      // Establecer usuario inmediatamente
+      setUserData({
+        user,
+        profile: null,
+        loading: false,
+        error: null
+      })
 
-      setUser(userData)
-      setProfile(profileData)
-    } catch (err: any) {
-      setError(err.message || 'Error cargando datos del usuario')
-      console.error('Error loading user data:', err)
-    } finally {
-      setLoading(false)
+      // Cargar perfil en segundo plano
+      try {
+        const { data: profile, error: profileError } = await profilePromise
+        
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Profile error:', profileError)
+        }
+
+        setUserData(prev => ({
+          ...prev,
+          profile
+        }))
+      } catch (profileErr) {
+        console.error('Error loading profile:', profileErr)
+      }
+
+    } catch (error) {
+      console.error('Error loading user data:', error)
+      setUserData({
+        user: null,
+        profile: null,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      })
     }
   }, [supabase])
 
   useEffect(() => {
     loadUserData()
 
-    // Listener optimizado para cambios de auth
+    // Listener para cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setProfile(null)
-          cache.clear() // Limpiar cache al cerrar sesión
-        } else if (event === 'SIGNED_IN' && session?.user) {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
           await loadUserData()
         }
       }
     )
 
-    return () => subscription.unsubscribe()
-  }, [loadUserData, supabase])
-
-  return { user, profile, loading, error, refetch: loadUserData }
-}
-
-// Hook optimizado para estadísticas del dashboard
-export const useOptimizedDashboardStats = (userId?: string) => {
-  const [stats, setStats] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
-  const supabase = createClient()
-
-  const loadStats = useCallback(async () => {
-    if (!userId) return
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      const cacheKey = `dashboard-stats-${userId}`
-      const cachedData = getCachedData(cacheKey)
-      if (cachedData) {
-        setStats(cachedData)
-        setLoading(false)
-        return
-      }
-
-      // Cargar todos los datos en paralelo
-      const [profileResult, tradesResult, statsResult] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
-        supabase.from('trades').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
-        supabase.from('user_stats').select('*').eq('user_id', userId).single()
-      ])
-
-      const combinedStats = {
-        profile: profileResult.data,
-        recentTrades: tradesResult.data || [],
-        userStats: statsResult.data || {}
-      }
-
-      // Guardar en cache
-      setCachedData(cacheKey, combinedStats)
-      setStats(combinedStats)
-    } catch (err: any) {
-      setError(err.message || 'Error cargando estadísticas')
-      console.error('Error loading dashboard stats:', err)
-    } finally {
-      setLoading(false)
+    return () => {
+      subscription.unsubscribe()
     }
-  }, [userId, supabase])
+  }, [loadUserData])
 
-  useEffect(() => {
-    loadStats()
-  }, [loadStats])
-
-  return { stats, loading, error, refetch: loadStats }
+  return userData
 }
 
 // Hook optimizado para el feed
 export const useOptimizedFeed = (page = 1, limit = 20) => {
-  const [trades, setTrades] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
-  
+  const [feedData, setFeedData] = useState<{
+    trades: any[];
+    loading: boolean;
+    error: string | null;
+    hasMore: boolean;
+  }>({
+    trades: [],
+    loading: true,
+    error: null,
+    hasMore: true
+  })
+
   const supabase = createClient()
 
-  const loadFeed = useCallback(async (pageNum = 1, pageLimit = 20) => {
+  const loadFeed = useCallback(async (pageNum: number = 1, append: boolean = false) => {
     try {
-      setLoading(true)
-      setError(null)
-
-      const cacheKey = `feed-${pageNum}-${pageLimit}`
-      const cachedData = getCachedData(cacheKey)
-      if (cachedData) {
-        setTrades(cachedData.trades)
-        setHasMore(cachedData.hasMore)
-        setLoading(false)
+      const cacheKey = `feed-${pageNum}-${limit}`
+      const cached = cache.get(cacheKey)
+      
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        if (append) {
+          setFeedData(prev => ({
+            ...prev,
+            trades: [...prev.trades, ...cached.data.trades],
+            loading: false,
+            hasMore: cached.data.hasMore
+          }))
+        } else {
+          setFeedData({
+            trades: cached.data.trades,
+            loading: false,
+            error: null,
+            hasMore: cached.data.hasMore
+          })
+        }
         return
       }
 
-      // Llamar a la API optimizada del feed
-      const response = await fetch(`/api/feed?page=${pageNum}&limit=${pageLimit}`)
+      if (!append) {
+        setFeedData(prev => ({ ...prev, loading: true, error: null }))
+      }
+
+      const response = await fetch(`/api/feed?page=${pageNum}&limit=${limit}`)
+      
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        throw new Error('Error al cargar el feed')
       }
 
       const data = await response.json()
       
       // Guardar en cache
-      setCachedData(cacheKey, {
-        trades: data.trades,
-        hasMore: data.pagination.hasMore
+      cache.set(cacheKey, {
+        data: {
+          trades: data.trades || [],
+          hasMore: data.hasMore || false
+        },
+        timestamp: Date.now()
       })
 
-      setTrades(data.trades)
-      setHasMore(data.pagination.hasMore)
-    } catch (err: any) {
-      setError(err.message || 'Error cargando feed')
-      console.error('Error loading feed:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+      if (append) {
+        setFeedData(prev => ({
+          ...prev,
+          trades: [...prev.trades, ...data.trades],
+          loading: false,
+          hasMore: data.hasMore
+        }))
+      } else {
+        setFeedData({
+          trades: data.trades || [],
+          loading: false,
+          error: null,
+          hasMore: data.hasMore || false
+        })
+      }
 
-  useEffect(() => {
-    loadFeed(page, limit)
-  }, [loadFeed, page, limit])
+    } catch (error) {
+      console.error('Error loading feed:', error)
+      setFeedData(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }))
+    }
+  }, [limit, supabase])
 
   const loadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      loadFeed(page + 1, limit)
+    if (!feedData.loading && feedData.hasMore) {
+      loadFeed(Math.floor(feedData.trades.length / limit) + 1, true)
     }
-  }, [loading, hasMore, page, limit, loadFeed])
+  }, [feedData.loading, feedData.hasMore, feedData.trades.length, limit, loadFeed])
 
-  return { trades, loading, error, hasMore, refetch: () => loadFeed(page, limit), loadMore }
-}
-
-// Hook para limpiar cache manualmente
-export const useCacheManager = () => {
-  const clearCache = useCallback(() => {
-    cache.clear()
-  }, [])
-
-  const clearCacheByPattern = useCallback((pattern: string) => {
+  const refetch = useCallback(() => {
+    // Limpiar cache
     for (const key of cache.keys()) {
-      if (key.includes(pattern)) {
+      if (key.startsWith('feed-')) {
         cache.delete(key)
       }
     }
-  }, [])
+    loadFeed(1, false)
+  }, [loadFeed])
 
-  return { clearCache, clearCacheByPattern }
+  useEffect(() => {
+    loadFeed()
+  }, [loadFeed])
+
+  return {
+    ...feedData,
+    loadMore,
+    refetch
+  }
+}
+
+// Hook para likes optimizado
+export const useOptimizedLikes = () => {
+  const [likes, setLikes] = useState<Map<string, boolean>>(new Map())
+  const [loadingLike, setLoadingLike] = useState<string | null>(null)
+
+  const supabase = createClient()
+
+  const toggleLike = useCallback(async (tradeId: string) => {
+    try {
+      setLoadingLike(tradeId)
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Usuario no autenticado')
+
+      const isLiked = likes.get(tradeId) || false
+      
+      if (isLiked) {
+        // Remover like
+        await supabase
+          .from('trade_likes')
+          .delete()
+          .eq('trade_id', tradeId)
+          .eq('user_id', user.id)
+      } else {
+        // Agregar like
+        await supabase
+          .from('trade_likes')
+          .insert({ trade_id: tradeId, user_id: user.id })
+      }
+
+      // Actualizar estado local inmediatamente
+      setLikes(prev => new Map(prev).set(tradeId, !isLiked))
+      
+    } catch (error) {
+      console.error('Error toggling like:', error)
+    } finally {
+      setLoadingLike(null)
+    }
+  }, [likes, supabase])
+
+  return {
+    likes,
+    loadingLike,
+    toggleLike,
+    setLikes
+  }
+}
+
+// Función para limpiar cache
+export const clearCache = () => {
+  cache.clear()
 } 

@@ -6,7 +6,6 @@ import Sidebar from './Sidebar'
 import MobileNavigation from './MobileNavigation'
 import { useOptimizedUserData } from '@/hooks/useOptimizedData'
 import { PreloadManager, ResourceHints, PerformanceMonitor } from './optimized/PreloadComponents'
-import InitialLoader from './InitialLoader'
 import LoadingSpinner from './LoadingSpinner'
 
 // Memoized components
@@ -19,7 +18,6 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [showInitialLoader, setShowInitialLoader] = useState(true)
   const { user, profile, loading } = useOptimizedUserData()
   const router = useRouter()
 
@@ -38,11 +36,6 @@ export default function Layout({ children }: LayoutProps) {
     setIsMobileMenuOpen
   }), [user, profile, isMobileMenuOpen])
 
-  // Handle initial loader completion
-  const handleInitialLoaderComplete = () => {
-    setShowInitialLoader(false)
-  }
-
   // Handle authentication redirect
   useEffect(() => {
     if (!loading && !user) {
@@ -50,18 +43,12 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, [user, loading, router])
 
-  // Show initial loader on first load
-  if (showInitialLoader) {
-    return <InitialLoader onComplete={handleInitialLoaderComplete} />
-  }
-
-  // Show loading spinner while authenticating
+  // Show loading spinner ONLY while authenticating
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
         <LoadingSpinner 
-          size={100} 
-          text="Autenticando..." 
+          size={140} 
           className="text-white"
         />
       </div>
@@ -74,7 +61,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white layout-container">
+    <div className="min-h-screen text-white layout-container" style={{backgroundColor: '#010314'}}>
       {/* Performance optimization components */}
       <PreloadManager />
       <ResourceHints />
@@ -83,23 +70,15 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar for desktop */}
       <MemoizedSidebar {...sidebarProps} />
       
-      {/* Mobile Navigation */}
-      <MemoizedMobileNavigation {...mobileNavProps} />
-      
       {/* Main content */}
-      <main className="lg:ml-64 min-h-screen content-container">
-        <div className="p-4 lg:p-8">
+      <div className="md:ml-64 transition-all duration-300">
+        <main className="min-h-screen">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
       
-      {/* Mobile menu overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      {/* Mobile navigation */}
+      <MemoizedMobileNavigation {...mobileNavProps} />
     </div>
   )
 } 

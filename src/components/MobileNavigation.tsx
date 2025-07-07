@@ -135,7 +135,7 @@ export default function MobileNavigation({ user, profile }: MobileNavigationProp
 
       {/* More Menu */}
       {showMore && (
-        <div className="md:hidden fixed bottom-16 left-0 right-0 border-t border-gray-800 z-50 max-h-80 overflow-y-auto" style={{backgroundColor: '#010318'}}>
+        <div className="md:hidden fixed bottom-20 left-4 right-4 border border-gray-700 rounded-lg z-50 max-h-96 overflow-y-auto shadow-2xl" style={{backgroundColor: '#010318'}}>
           {/* User Info */}
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3">

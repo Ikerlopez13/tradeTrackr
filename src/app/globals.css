@@ -2,190 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optimizaciones de rendimiento */
+/* Animación para el logo */
+@keyframes scale-cycle {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-scale-cycle {
+  animation: scale-cycle 2s ease-in-out infinite;
+}
+
+/* Estilos globales */
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: 'kern' 1;
-  font-kerning: normal;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* Transiciones suaves */
+.transition-colors {
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+
+.transition-transform {
+  transition: transform 0.15s ease-in-out;
+}
+
+/* Botones con efectos */
+.btn-primary {
+  @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition-colors;
+}
+
+/* Cards con efecto hover */
+.card-hover {
+  @apply transition-transform hover:scale-105;
+}
+
+/* Fondo personalizado */
+.bg-dark {
   background-color: #010314;
-  color: #ffffff;
-  overflow-x: hidden;
 }
 
-/* Optimizar animaciones */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+/* Gradientes personalizados */
+.gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-/* Componentes reutilizables */
-@layer components {
-  .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
-  }
-  
-  .btn-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
-  }
-  
-  .card {
-    @apply bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-colors duration-200;
-  }
-  
-  .input-field {
-    @apply bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
-  }
-  
-  .spinner {
-    @apply animate-spin rounded-full border-4 border-t-transparent;
-  }
-  
-  .gradient-text {
-    @apply bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent;
-  }
-  
-  .glass-effect {
-    @apply bg-gray-900/50 backdrop-blur-sm border border-gray-800;
-  }
+.gradient-success {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
 }
 
-/* Utilidades personalizadas */
-@layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-  
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .will-change-transform {
-    will-change: transform;
-  }
-  
-  .will-change-opacity {
-    will-change: opacity;
-  }
-  
-  .gpu-accelerated {
-    transform: translateZ(0);
-  }
-}
-
-/* Optimizaciones específicas */
-.layout-container {
-  contain: layout;
-}
-
-.content-container {
-  contain: content;
-}
-
-.paint-container {
-  contain: paint;
-}
-
-/* Animaciones optimizadas */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-.animate-pulse-fast {
-  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Mejoras de performance para listas largas */
-.virtual-list-item {
-  contain: strict;
-  height: auto;
-  min-height: 100px;
-}
-
-/* Optimizaciones de imágenes */
-img {
-  max-width: 100%;
-  height: auto;
-  loading: lazy;
-}
-
-/* Mejoras de accesibilidad */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Focus visible para mejor UX */
-.focus-visible:focus {
-  outline: 2px solid #3B82F6;
-  outline-offset: 2px;
-}
-
-/* Optimizaciones para dispositivos móviles */
-@media (max-width: 768px) {
-  .mobile-optimized {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-  
-  .mobile-tap-highlight {
-    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
-  }
+.gradient-danger {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
 }

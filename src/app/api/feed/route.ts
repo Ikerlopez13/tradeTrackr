@@ -49,18 +49,7 @@ export async function GET(request: Request) {
         description,
         confluences,
         session,
-        feeling,
-        profiles!inner(
-          username,
-          avatar_url,
-          is_premium
-        ),
-        user_stats!inner(
-          wins,
-          losses,
-          win_rate,
-          total_pnl_percentage
-        )
+        feeling
       `)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
@@ -72,6 +61,38 @@ export async function GET(request: Request) {
     }
 
     const trades = tradesData || []
+
+    // Obtener perfiles y estadísticas por separado
+    let profilesMap = new Map()
+    let statsMap = new Map()
+
+    if (trades.length > 0) {
+      const userIds = [...new Set(trades.map((t: any) => t.user_id))]
+      
+      const [profilesResult, statsResult] = await Promise.all([
+        // Obtener perfiles
+        supabase
+          .from('profiles')
+          .select('id, username, avatar_url, is_premium')
+          .in('id', userIds),
+        
+        // Obtener estadísticas
+        supabase
+          .from('user_stats')
+          .select('user_id, wins, losses, win_rate, total_pnl_percentage')
+          .in('user_id', userIds)
+      ])
+
+      // Procesar perfiles
+      profilesResult.data?.forEach((profile: any) => {
+        profilesMap.set(profile.id, profile)
+      })
+
+      // Procesar estadísticas
+      statsResult.data?.forEach((stat: any) => {
+        statsMap.set(stat.user_id, stat)
+      })
+    }
 
     // OPTIMIZACIÓN: Obtener likes en paralelo solo si hay trades
     let userLikesMap = new Map()
@@ -109,8 +130,8 @@ export async function GET(request: Request) {
 
     // Combinar datos de manera eficiente
     const enrichedTrades = trades.map((trade: any) => {
-      const profile = trade.profiles
-      const stats = trade.user_stats
+      const profile = profilesMap.get(trade.user_id)
+      const stats = statsMap.get(trade.user_id)
       const likesCount = likesCountsMap.get(trade.id) || 0
       const userLiked = userLikesMap.has(trade.id)
 

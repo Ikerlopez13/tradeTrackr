@@ -192,7 +192,7 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
         {/* Calendar days */}
         {getDaysInMonth().map((day, index) => {
           if (!day) {
-            return <div key={index} className="aspect-square" />;
+            return <div key={`empty-${index}`} className="aspect-square" />;
           }
           
           const dayData = getDayData(day);
@@ -201,7 +201,7 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
           
           return (
             <div
-              key={day}
+              key={`day-${currentDate.getMonth()}-${day}`}
               className={`aspect-square flex flex-col items-center justify-center rounded-lg border cursor-pointer transition-all hover:scale-105 ${
                 dayData 
                   ? `${getPnLColor(pnl)} ${getPnLIntensity(pnl)}`
