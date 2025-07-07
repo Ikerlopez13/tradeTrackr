@@ -123,7 +123,7 @@ export async function POST() {
       const totalPnlPips = allTrades.reduce((sum, t) => sum + (t.pnl_pips || 0), 0)
       const totalPnlMoney = allTrades.reduce((sum, t) => sum + (t.pnl_money || 0), 0)
       
-      // Contar wins, losses, breakevens
+      // Contar wins, losses, breakevens - usar valores normalizados
       const totalTrades = allTrades.length
       const wins = allTrades.filter(t => t.result === 'win').length
       const losses = allTrades.filter(t => t.result === 'loss').length

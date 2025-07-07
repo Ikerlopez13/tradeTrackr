@@ -73,7 +73,16 @@ export async function POST(request: NextRequest) {
       pnl_pips,
       pnl_money,
       screenshot_url,
-      is_public
+      is_public,
+      entry_price,
+      stop_loss,
+      take_profit,
+      exit_price,
+      lot_size,
+      commission,
+      swap,
+      notes,
+      expert_advisor
     } = body
 
     // Validaciones básicas
@@ -151,7 +160,16 @@ export async function POST(request: NextRequest) {
         pnl_pips,
         pnl_money,
         screenshot_url,
-        is_public
+        is_public,
+        entry_price,
+        stop_loss,
+        take_profit,
+        exit_price,
+        lot_size,
+        commission,
+        swap,
+        notes,
+        expert_advisor
       })
       .select()
       .single()

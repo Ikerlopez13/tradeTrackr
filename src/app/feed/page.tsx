@@ -7,6 +7,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Trophy, TrendingUp, TrendingDown, Minus, Clock, User, BarChart3, Heart, BadgeCheck } from 'lucide-react'
 import { getSafeDisplayName, getUserInitials } from '@/utils/userUtils'
+import Layout from '@/components/Layout'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 interface PublicTrade {
   id: string
@@ -112,10 +114,10 @@ export default function FeedPage() {
       
       setHasMore(data.trades.length === limit)
       
-      // Cargar likes para todos los trades
-      data.trades.forEach((trade: PublicTrade) => {
-        loadLikes(trade.id)
-      })
+      // Cargar likes para todos los trades en batch
+      if (data.trades.length > 0) {
+        await loadLikesBatch(data.trades.map((trade: PublicTrade) => trade.id))
+      }
       
     } catch (error) {
       console.error('Error loading trades:', error)
@@ -125,6 +127,45 @@ export default function FeedPage() {
     }
   }
 
+  const loadLikesBatch = async (tradeIds: string[]) => {
+    try {
+      // Cargar likes para múltiples trades de una vez
+      const likesPromises = tradeIds.map(async (tradeId) => {
+        try {
+          const response = await fetch(`/api/likes?trade_id=${tradeId}`)
+          const data = await response.json()
+          
+          return {
+            tradeId,
+            count: response.ok ? data.count : 0,
+            isLiked: response.ok ? data.isLiked : false
+          }
+        } catch (error) {
+          console.error(`Error fetching likes for trade ${tradeId}:`, error)
+          return {
+            tradeId,
+            count: 0,
+            isLiked: false
+          }
+        }
+      })
+      
+      const likesResults = await Promise.all(likesPromises)
+      
+      // Actualizar estado con todos los likes
+      const newLikesData: {[tradeId: string]: LikeData} = {}
+      likesResults.forEach(({ tradeId, count, isLiked }) => {
+        newLikesData[tradeId] = { count, isLiked }
+      })
+      
+      setLikesData(prev => ({ ...prev, ...newLikesData }))
+      
+    } catch (error) {
+      console.error('Error loading likes batch:', error)
+    }
+  }
+
+  // Función simplificada para cargar likes individuales (solo para nuevos trades)
   const loadLikes = async (tradeId: string) => {
     try {
       const response = await fetch(`/api/likes?trade_id=${tradeId}`)
@@ -140,7 +181,6 @@ export default function FeedPage() {
         }))
       } else {
         console.error('Error fetching likes:', data)
-        // Set default values even on error
         setLikesData(prev => ({
           ...prev,
           [tradeId]: {
@@ -151,7 +191,6 @@ export default function FeedPage() {
       }
     } catch (error) {
       console.error('Error fetching likes:', error)
-      // Set default values even on error
       setLikesData(prev => ({
         ...prev,
         [tradeId]: {
@@ -281,20 +320,11 @@ export default function FeedPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
-        <div className="text-center">
-          <Image
-            src="/logo.jpeg"
-            alt="TradeTrackr Logo"
-            width={80}
-            height={80}
-            priority
-            unoptimized
-            className="rounded-lg animate-scale-cycle mx-auto mb-4"
-          />
-          <div className="text-white text-lg font-medium">Cargando feed...</div>
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner size={100} />
         </div>
-      </div>
+      </Layout>
     )
   }
 
@@ -303,101 +333,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{backgroundColor: '#010314'}}>
-      {/* Header móvil (solo en pantallas pequeñas) */}
-      <header className="md:hidden sticky top-0 z-50 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
-        <div className="flex items-center justify-center py-4 px-6">
-          <Image
-            src="/logo.jpeg"
-            alt="TradeTrackr Logo"
-            width={32}
-            height={32}
-            priority
-            unoptimized
-            className="rounded-lg mr-3"
-          />
-          <h1 className="text-lg font-bold text-white">TradeTrackr</h1>
-        </div>
-      </header>
-
-      {/* Navbar desktop (solo en pantallas grandes) */}
-      <nav className="hidden md:flex items-center justify-between px-8 py-4 backdrop-blur-sm border-b border-gray-800" style={{backgroundColor: '#010314'}}>
-        <div className="flex items-center">
-          <Image
-            src="/logo.jpeg"
-            alt="TradeTrackr Logo"
-            width={40}
-            height={40}
-            priority
-            unoptimized
-            className="rounded-lg mr-4"
-          />
-          <h1 className="text-2xl font-bold text-white">TradeTrackr</h1>
-        </div>
-        
-        <div className="flex items-center space-x-6">
-          <Link
-            href="/"
-            className="text-gray-400 font-medium hover:text-white transition-colors"
-          >
-            Nuevo Trade
-          </Link>
-          <Link
-            href="/trades"
-            className="text-gray-400 font-medium hover:text-white transition-colors"
-          >
-            Mis Trades
-          </Link>
-          <Link
-            href="/feed"
-            className="text-white font-medium hover:text-gray-300 transition-colors"
-          >
-            Feed
-          </Link>
-          <Link
-            href="/referrals"
-            className="text-gray-400 font-medium hover:text-white transition-colors flex items-center gap-1"
-          >
-            Referidos
-          </Link>
-          {!user.profile?.is_premium ? (
-            <Link
-              href="/pricing"
-              className="text-gray-400 font-medium hover:text-white transition-colors"
-            >
-              Pricing
-            </Link>
-          ) : (
-            <Link
-              href="/subscription"
-              className="text-gray-400 font-medium hover:text-white transition-colors"
-            >
-              Suscripción
-            </Link>
-          )}
-          <Link
-            href="/profile"
-            className="text-gray-400 font-medium hover:text-white transition-colors"
-          >
-            Perfil
-          </Link>
-          <Link
-            href="/leaderboards"
-            className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-          >
-            <Trophy className="w-4 h-4" />
-            <span>Leaderboards</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      </nav>
-
-      {/* Contenido principal */}
+    <Layout>
       <div className="pb-20 md:pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center mb-8">
@@ -796,64 +732,6 @@ export default function FeedPage() {
           </div>
         </div>
       )}
-
-      {/* Bottom Navigation Menu - Solo móvil */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-sm border-t border-gray-800 z-50" style={{backgroundColor: '#010314'}}>
-        <div className="flex justify-around items-center py-2">
-          {/* Nuevo Trade */}
-          <Link
-            href="/"
-            className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-            </svg>
-            <span className="text-xs font-medium">Nuevo</span>
-          </Link>
-
-          {/* Mis Trades */}
-          <Link
-            href="/trades"
-            className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span className="text-xs font-medium">Trades</span>
-          </Link>
-
-          {/* Feed - Página actual */}
-          <Link
-            href="/feed"
-            className="flex flex-col items-center py-1 px-2 text-white"
-          >
-            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span className="text-xs font-medium">Feed</span>
-          </Link>
-
-          {/* Leaderboards */}
-          <Link
-            href="/leaderboards"
-            className="flex flex-col items-center py-1 px-2 text-yellow-400 hover:text-yellow-300 transition-colors"
-          >
-            <Trophy className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Ranking</span>
-          </Link>
-
-          {/* Perfil */}
-          <Link
-            href="/profile"
-            className="flex flex-col items-center py-1 px-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs font-medium">Perfil</span>
-          </Link>
-        </div>
-      </nav>
-    </div>
+    </Layout>
   )
 } 

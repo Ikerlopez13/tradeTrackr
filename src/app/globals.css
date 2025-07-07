@@ -123,7 +123,7 @@ body::before {
 
 @keyframes scale-cycle {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.1); }
 }
 
 .animate-scale-cycle {
@@ -214,7 +214,7 @@ body::before {
 
 @keyframes scale-cycle {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.1); }
 }
 
 .animate-scale-cycle {
