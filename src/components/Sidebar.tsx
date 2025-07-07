@@ -83,12 +83,6 @@ export default function Sidebar({ user, profile }: SidebarProps) {
       active: pathname === '/profit-calendar'
     },
     {
-      icon: TrendingUp,
-      label: 'Feed',
-      href: '/feed',
-      active: pathname === '/feed'
-    },
-    {
       icon: Trophy,
       label: 'Leaderboards',
       href: '/leaderboards',

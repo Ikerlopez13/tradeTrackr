@@ -15,12 +15,12 @@ const PageLoader: React.FC<PageLoaderProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gray-900 ${className}`}>
+    <div className={`min-h-screen flex flex-col items-center justify-center bg-gray-900 ${className}`}>
       <LoadingSpinner 
         size={size} 
-        text={text}
-        showText={true}
+        className="mb-4"
       />
+      <p className="text-white text-lg font-medium">{text}</p>
     </div>
   )
 }

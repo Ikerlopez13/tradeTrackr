@@ -65,10 +65,10 @@ export default function MobileNavigation({ user, profile }: MobileNavigationProp
       active: pathname === '/trades'
     },
     {
-      href: '/feed',
-      label: 'Feed',
-      icon: TrendingUp,
-      active: pathname === '/feed'
+      href: '/leaderboards',
+      label: 'Ranking',
+      icon: Trophy,
+      active: pathname === '/leaderboards'
     }
   ]
 

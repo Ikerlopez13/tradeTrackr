@@ -28,35 +28,35 @@ export default function Login() {
 
       if (error) {
         setError(error.message)
+        setLoading(false)
       } else {
+        // Navegación inmediata sin esperar
         router.push('/')
       }
     } catch (err) {
       setError('Error inesperado')
-    } finally {
       setLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen flex flex-col" style={{backgroundColor: '#010314'}}>
-      {/* Header simple con logo */}
+      {/* Header optimizado */}
       <header className="pt-8 pb-4">
         <div className="flex items-center justify-center px-6">
           <Image
-            src="/logo.jpeg"
+            src="/logo.png"
             alt="TradeTrackr Logo"
             width={48}
             height={48}
             priority
-            unoptimized
-            className="rounded-lg mr-3 animate-scale-cycle"
+            className="rounded-lg mr-3"
           />
           <h1 className="text-2xl font-bold text-white">TradeTrackr</h1>
         </div>
       </header>
 
-      {/* Contenido principal centrado */}
+      {/* Contenido principal */}
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
@@ -64,7 +64,7 @@ export default function Login() {
               Bienvenido de vuelta
             </h2>
             <p className="text-gray-400 text-sm">
-              Inicia sesión para continuar con tu trading journal
+              Inicia sesión para continuar
             </p>
           </div>
 
@@ -80,6 +80,8 @@ export default function Login() {
                 placeholder="tu@email.com"
                 className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
                 required
+                autoComplete="email"
+                autoFocus
               />
             </div>
 
@@ -94,6 +96,7 @@ export default function Login() {
                 placeholder="••••••••"
                 className="w-full p-3 bg-gray-800/60 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none text-sm"
                 required
+                autoComplete="current-password"
               />
             </div>
 
@@ -108,7 +111,7 @@ export default function Login() {
               disabled={loading}
               className="w-full bg-white text-black font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              {loading ? 'Iniciando...' : 'Iniciar Sesión'}
             </button>
           </form>
 

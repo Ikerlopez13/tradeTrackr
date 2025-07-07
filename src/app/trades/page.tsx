@@ -113,6 +113,7 @@ export default function TradesPage() {
       // Usar API route segura para eliminar trade
       const response = await fetch(`/api/trades/${selectedTrade.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       const result = await response.json()
@@ -156,6 +157,7 @@ export default function TradesPage() {
       // Usar API route segura para eliminar todos los trades
       const response = await fetch('/api/trades/bulk-delete', {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       const result = await response.json()

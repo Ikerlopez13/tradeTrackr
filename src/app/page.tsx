@@ -360,6 +360,7 @@ export default function Home() {
       
       const response = await fetch('/api/trades', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

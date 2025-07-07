@@ -69,6 +69,7 @@ function SignupForm() {
         try {
           const response = await fetch('/api/referrals', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ referral_code: referralCode })
           })

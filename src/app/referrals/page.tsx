@@ -30,7 +30,9 @@ export default function ReferralsPage() {
         return;
       }
 
-      const response = await fetch('/api/referrals');
+      const response = await fetch('/api/referrals', {
+        credentials: 'include'
+      });
       if (response.ok) {
         const referralData: ReferralDashboardData = await response.json();
         setData(referralData);
@@ -59,6 +61,7 @@ export default function ReferralsPage() {
     try {
       const response = await fetch('/api/referrals/claim', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reward_id: rewardId })
       });
