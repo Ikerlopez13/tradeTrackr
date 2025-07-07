@@ -1,39 +1,39 @@
 {
-  "timestamp": "2025-07-07T20:04:22.204Z",
+  "timestamp": "2025-07-07T20:16:24.137Z",
   "results": [
     {
       "url": "http://localhost:3000",
       "status": 200,
-      "loadTime": 54,
+      "loadTime": 37,
       "success": true
     },
     {
       "url": "http://localhost:3000/feed",
       "status": 200,
-      "loadTime": 6,
+      "loadTime": 4,
       "success": true
     },
     {
       "url": "http://localhost:3000/dashboard",
       "status": 200,
-      "loadTime": 7,
+      "loadTime": 3,
       "success": true
     },
     {
       "url": "http://localhost:3000/trades",
       "status": 200,
-      "loadTime": 7,
+      "loadTime": 3,
       "success": true
     },
     {
       "url": "http://localhost:3000/api/feed?page=1&limit=10",
       "status": 200,
-      "loadTime": 1028,
+      "loadTime": 1029,
       "success": true
     }
   ],
   "summary": {
-    "avgLoadTime": 220,
+    "avgLoadTime": 215,
     "successRate": 100,
     "fastPages": 4,
     "slowPages": 0

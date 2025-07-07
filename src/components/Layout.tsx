@@ -6,6 +6,8 @@ import Sidebar from './Sidebar'
 import MobileNavigation from './MobileNavigation'
 import { useOptimizedUserData } from '@/hooks/useOptimizedData'
 import { PreloadManager, ResourceHints, PerformanceMonitor } from './optimized/PreloadComponents'
+import InitialLoader from './InitialLoader'
+import LoadingSpinner from './LoadingSpinner'
 
 // Memoized components
 const MemoizedSidebar = React.memo(Sidebar)
@@ -17,6 +19,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showInitialLoader, setShowInitialLoader] = useState(true)
   const { user, profile, loading } = useOptimizedUserData()
   const router = useRouter()
 
@@ -35,18 +38,32 @@ export default function Layout({ children }: LayoutProps) {
     setIsMobileMenuOpen
   }), [user, profile, isMobileMenuOpen])
 
+  // Handle initial loader completion
+  const handleInitialLoaderComplete = () => {
+    setShowInitialLoader(false)
+  }
+
   // Handle authentication redirect
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/login')
+      router.push('/login')
     }
   }, [user, loading, router])
 
-  // Don't render anything while loading
+  // Show initial loader on first load
+  if (showInitialLoader) {
+    return <InitialLoader onComplete={handleInitialLoaderComplete} />
+  }
+
+  // Show loading spinner while authenticating
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <LoadingSpinner 
+          size={100} 
+          text="Autenticando..." 
+          className="text-white"
+        />
       </div>
     )
   }
