@@ -5,20 +5,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { 
-  Home, 
-  BarChart3, 
-  TrendingUp, 
+  BarChart2, 
+  BookOpen, 
+  Calculator, 
+  Calendar, 
   Trophy, 
+  Users, 
   User, 
+  Star, 
+  CreditCard, 
   LogOut,
-  Star,
-  Users,
-  Gift,
-  CreditCard,
-  Calendar,
-  Calculator,
-  BookOpen,
-  BarChart2
+  BarChart3
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -56,6 +53,12 @@ export default function Sidebar({ user, profile }: SidebarProps) {
       label: 'Journaling',
       href: '/',
       active: pathname === '/'
+    },
+    {
+      icon: BarChart3,
+      label: 'Mis Trades',
+      href: '/trades',
+      active: pathname === '/trades'
     },
     {
       icon: Calculator,
