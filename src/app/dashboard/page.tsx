@@ -70,18 +70,16 @@ export default function DashboardPage() {
       }
       setUser(user);
       
-      // Cargar profile y trades en paralelo
-      const [profileData, tradesData] = await Promise.all([
+      // Cargar TODOS los datos en paralelo
+      const [profileData, tradesData, userStatsData] = await Promise.all([
         loadUserProfile(user.id),
-        loadRecentTrades(user.id)
+        loadRecentTrades(user.id),
+        loadUserStats(user.id)
       ]);
       
-      // Cargar user stats
-      await loadUserStats(user.id);
-      
-      // Calcular estadísticas DESPUÉS de tener ambos datos
-      if (profileData && tradesData) {
-        const calculatedStats = calculateStats(tradesData, profileData);
+      // Calcular estadísticas DESPUÉS de tener todos los datos
+      if (profileData && tradesData && userStatsData) {
+        const calculatedStats = calculateStats(tradesData, profileData, userStatsData);
         setStats(calculatedStats);
       }
       
@@ -116,8 +114,10 @@ export default function DashboardPage() {
         .single();
       
       setUserStats(statsData);
+      return statsData;
     } catch (error) {
       console.error('Error loading stats:', error);
+      return null;
     }
   };
 
@@ -141,24 +141,24 @@ export default function DashboardPage() {
     }
   };
 
-  const calculateStats = (trades: any[], profileData: any): DashboardStats => {
-    const totalTrades = trades.length;
-    const winningTrades = trades.filter(t => t.result === 'win' || (t.pnl_percentage && t.pnl_percentage > 0));
-    const losingTrades = trades.filter(t => t.result === 'loss' || (t.pnl_percentage && t.pnl_percentage < 0));
+  const calculateStats = (trades: any[], profileData: any, userStatsData: any): DashboardStats => {
+    // Use the SAME data source as profile page: user_stats table
+    const totalTrades = userStatsData?.total_trades || 0;
+    const wins = userStatsData?.wins || 0;
+    const losses = userStatsData?.losses || 0;
+    const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
     
-    const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl_money || 0), 0);
-    const winRate = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
+    // P&L from user_stats (same as profile)
+    const totalPnLPercentage = userStatsData?.total_pnl_percentage || 0;
+    const totalPnLMoney = userStatsData?.total_pnl_money || 0;
+    const totalPnLPips = userStatsData?.total_pnl_pips || 0;
     
-    const avgWin = winningTrades.length > 0 
-      ? winningTrades.reduce((sum, trade) => sum + (trade.pnl_money || 0), 0) / winningTrades.length 
-      : 0;
-    
-    const avgLoss = losingTrades.length > 0 
-      ? Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.pnl_money || 0), 0) / losingTrades.length)
-      : 0;
-    
+    // Calculate averages from user_stats
+    const avgWin = wins > 0 ? (totalPnLMoney > 0 ? totalPnLMoney / wins : 0) : 0;
+    const avgLoss = losses > 0 ? (totalPnLMoney < 0 ? Math.abs(totalPnLMoney) / losses : 0) : 0;
     const profitFactor = avgLoss > 0 ? avgWin / avgLoss : 0;
     
+    // Best/worst trades from individual trades (these are OK to calculate from recent trades)
     const bestTrade = trades.length > 0 
       ? Math.max(...trades.map(t => t.pnl_money || 0))
       : 0;
@@ -167,7 +167,7 @@ export default function DashboardPage() {
       ? Math.min(...trades.map(t => t.pnl_money || 0))
       : 0;
 
-    // Calculate time-based P&L
+    // Calculate time-based P&L from recent trades (these are supplementary stats)
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const weekStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -190,9 +190,9 @@ export default function DashboardPage() {
 
     return {
       accountBalance: currentBalance,
-      totalPnL,
-      totalTrades,
-      winRate,
+      totalPnL: totalPnLMoney, // Use user_stats data (same as profile)
+      totalTrades, // Use user_stats data (same as profile)
+      winRate, // Use user_stats data (same as profile)
       avgWin,
       avgLoss,
       profitFactor,
