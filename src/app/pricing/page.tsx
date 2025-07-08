@@ -47,7 +47,7 @@ export default function PricingPage() {
     if (planName === 'Pro Mensual') {
       // Redirigir al enlace de Stripe para el plan mensual con email pre-rellenado
       const email = user?.email || ''
-      const stripeUrl = `https://buy.stripe.com/cNidRa8XtdYN94G31EaR207${email ? `?prefilled_email=${encodeURIComponent(email)}` : ''}`
+      const stripeUrl = `https://buy.stripe.com/00w5kEc9F3k9gx831EaR20c${email ? `?prefilled_email=${encodeURIComponent(email)}` : ''}`
       window.open(stripeUrl, '_blank')
     } else if (planName === 'Gratis') {
       // Redirigir al registro

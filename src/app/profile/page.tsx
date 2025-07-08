@@ -617,7 +617,7 @@ export default function ProfilePage() {
                 <button 
                   onClick={() => {
                     const email = user?.email || ''
-                    const stripeUrl = `https://buy.stripe.com/cNidRa8XtdYN94G31EaR207${email ? `?prefilled_email=${encodeURIComponent(email)}` : ''}`
+                    const stripeUrl = `https://buy.stripe.com/00w5kEc9F3k9gx831EaR20c${email ? `?prefilled_email=${encodeURIComponent(email)}` : ''}`
                     window.open(stripeUrl, '_blank')
                   }}
                   className="w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 transform hover:scale-105 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-sm"
