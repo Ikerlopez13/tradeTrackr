@@ -175,8 +175,8 @@ export default function DashboardPage() {
       .filter(t => new Date(t.created_at) >= monthStart)
       .reduce((sum, trade) => sum + (trade.pnl_money || 0), 0);
 
-    // Use current_balance from user_stats if available, otherwise use profile account_balance
-    const currentBalance = userStats?.current_balance || profile?.account_balance || 1000;
+    // Use profile.account_balance consistently across the app (same as profile page)
+    const currentBalance = profile?.account_balance || 1000;
 
     return {
       accountBalance: currentBalance,
