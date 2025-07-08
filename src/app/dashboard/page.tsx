@@ -70,12 +70,20 @@ export default function DashboardPage() {
       }
       setUser(user);
       
-      // Cargar todos los datos en paralelo
-      await Promise.all([
+      // Cargar profile y trades en paralelo
+      const [profileData, tradesData] = await Promise.all([
         loadUserProfile(user.id),
-        loadUserStats(user.id),
         loadRecentTrades(user.id)
       ]);
+      
+      // Cargar user stats
+      await loadUserStats(user.id);
+      
+      // Calcular estadísticas DESPUÉS de tener ambos datos
+      if (profileData && tradesData) {
+        const calculatedStats = calculateStats(tradesData, profileData);
+        setStats(calculatedStats);
+      }
       
       setLoading(false);
     };
@@ -92,8 +100,10 @@ export default function DashboardPage() {
         .single();
       
       setProfile(profileData);
+      return profileData;
     } catch (error) {
       console.error('Error loading profile:', error);
+      return null;
     }
   };
 
@@ -122,16 +132,16 @@ export default function DashboardPage() {
       
       if (tradesData) {
         setRecentTrades(tradesData);
-        // Calcular estadísticas una sola vez con todos los trades
-        const calculatedStats = calculateStats(tradesData);
-        setStats(calculatedStats);
+        return tradesData;
       }
+      return [];
     } catch (error) {
       console.error('Error loading trades:', error);
+      return [];
     }
   };
 
-  const calculateStats = (trades: any[]): DashboardStats => {
+  const calculateStats = (trades: any[], profileData: any): DashboardStats => {
     const totalTrades = trades.length;
     const winningTrades = trades.filter(t => t.result === 'win' || (t.pnl_percentage && t.pnl_percentage > 0));
     const losingTrades = trades.filter(t => t.result === 'loss' || (t.pnl_percentage && t.pnl_percentage < 0));
@@ -175,8 +185,8 @@ export default function DashboardPage() {
       .filter(t => new Date(t.created_at) >= monthStart)
       .reduce((sum, trade) => sum + (trade.pnl_money || 0), 0);
 
-    // Use profile.account_balance consistently across the app (same as profile page)
-    const currentBalance = profile?.account_balance || 1000;
+    // Use the SAME field as profile page: profile.account_balance
+    const currentBalance = profileData?.account_balance || 1000;
 
     return {
       accountBalance: currentBalance,
