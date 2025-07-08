@@ -576,7 +576,7 @@ export default function ProfilePage() {
                 <div className="mb-4">
                   <div className="flex items-baseline justify-center">
                     <span className="text-2xl font-bold text-white">
-                      $5.99
+                      $9.99
                     </span>
                     <span className="text-gray-400 text-sm ml-1">
                       /mes
