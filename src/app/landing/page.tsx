@@ -316,7 +316,7 @@ export default function LandingPage() {
                 </span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Premium</h3>
-              <div className="text-4xl font-bold text-white mb-6">$5.99<span className="text-lg text-gray-400">/mes</span></div>
+              <div className="text-4xl font-bold text-white mb-6">$9.99<span className="text-lg text-gray-400">/mes</span></div>
               <ul className="text-left space-y-3 mb-8">
                 <li className="flex items-center text-gray-300">
                   <svg className="w-5 h-5 text-green-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
