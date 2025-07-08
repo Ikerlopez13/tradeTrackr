@@ -245,7 +245,7 @@ export default function DashboardPage() {
                 <div>
                   <div className="text-sm opacity-90 mb-1">Balance de Cuenta</div>
                   <div className="text-4xl font-bold">
-                    {formatCurrency((stats?.accountBalance || 0) + (stats?.totalPnL || 0))}
+                    {formatCurrency(stats?.accountBalance || 0)}
                   </div>
                   <div className="text-sm opacity-90 mt-1">USD</div>
                 </div>
