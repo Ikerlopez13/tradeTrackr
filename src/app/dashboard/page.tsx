@@ -9,7 +9,6 @@ import {
   BarChart2, 
   TrendingUp, 
   TrendingDown, 
-  DollarSign, 
   Target, 
   Clock, 
   Award,

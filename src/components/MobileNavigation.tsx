@@ -8,7 +8,6 @@ import {
   BarChart2,
   BookOpen,
   Calculator,
-  DollarSign,
   BarChart3,
   Calendar,
   TrendingUp,
@@ -75,21 +74,15 @@ export default function MobileNavigation({ user, profile }: MobileNavigationProp
   // Secondary navigation items (in "more" menu)
   const moreNavItems = [
     {
-      href: '/lot-calculator',
-      label: 'Calculadora',
       icon: Calculator,
+      label: 'Calculadora',
+      href: '/lot-calculator',
       active: pathname === '/lot-calculator'
     },
     {
-      href: '/currency-converter',
-      label: 'Divisas',
-      icon: DollarSign,
-      active: pathname === '/currency-converter'
-    },
-    {
-      href: '/profit-calendar',
-      label: 'Calendario',
       icon: Calendar,
+      label: 'Calendario',
+      href: '/profit-calendar',
       active: pathname === '/profit-calendar'
     },
     {

@@ -17,7 +17,6 @@ import {
   CreditCard,
   Calendar,
   Calculator,
-  DollarSign,
   BookOpen,
   BarChart2
 } from 'lucide-react'
@@ -63,18 +62,6 @@ export default function Sidebar({ user, profile }: SidebarProps) {
       label: 'Calculadora Lotes',
       href: '/lot-calculator',
       active: pathname === '/lot-calculator'
-    },
-    {
-      icon: DollarSign,
-      label: 'Conversión Divisas',
-      href: '/currency-converter',
-      active: pathname === '/currency-converter'
-    },
-    {
-      icon: BarChart3,
-      label: 'Mis Trades',
-      href: '/trades',
-      active: pathname === '/trades'
     },
     {
       icon: Calendar,
