@@ -235,10 +235,6 @@ export default function DashboardPage() {
                   ¡Bienvenido! {user?.email?.split('@')[0]}
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-green-400">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm">Actualizado hace: 37 mins</span>
-              </div>
             </div>
           </div>
 

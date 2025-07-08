@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOptimizedUserData } from '@/hooks/useOptimizedData'
+import { createClient } from '@/lib/supabase/client'
 import Sidebar from './Sidebar'
 import MobileNavigation from './MobileNavigation'
 import LoadingSpinner from './LoadingSpinner'
@@ -13,7 +14,41 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, loading, error } = useOptimizedUserData()
+  const [profile, setProfile] = useState<any>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const router = useRouter()
+  const supabase = createClient()
+
+  // Cargar datos del perfil cuando el usuario esté disponible
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null)
+        setProfileLoading(false)
+        return
+      }
+
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Error cargando perfil:', profileError)
+        } else {
+          setProfile(profileData)
+        }
+      } catch (err) {
+        console.error('Error en loadProfile:', err)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    loadProfile()
+  }, [user, supabase])
 
   // Redirección INMEDIATA si no hay usuario
   useEffect(() => {
@@ -25,7 +60,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [user, loading, router])
 
   // Si está cargando, mostrar spinner
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#010314'}}>
         <LoadingSpinner size={60} className="text-white" />
@@ -50,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar para desktop */}
       <Sidebar 
         user={user}
-        profile={null}
+        profile={profile}
       />
       
       {/* Contenido principal */}
@@ -63,7 +98,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Navegación móvil */}
       <MobileNavigation 
         user={user}
-        profile={null}
+        profile={profile}
       />
     </div>
   )
