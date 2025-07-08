@@ -106,7 +106,7 @@ export default function PricingPage() {
     {
       name: 'Pro Mensual',
       description: 'Flexibilidad mes a mes',
-      price: 5.99,
+      price: 9.99,
       period: 'mes',
       icon: '💳',
       features: [
