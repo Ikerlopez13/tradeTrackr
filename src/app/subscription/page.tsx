@@ -101,7 +101,7 @@ export default function SubscriptionPage() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-yellow-400">$5.99</div>
+                <div className="text-3xl font-bold text-yellow-400">$9.99</div>
                 <div className="text-gray-400 text-sm">por mes</div>
               </div>
             </div>
