@@ -208,7 +208,6 @@ export default function ProfilePage() {
       if (statsResult.error && (statsResult.error as any)?.code !== 'PGRST116') {
         console.error('❌ Error loading stats:', statsResult.error)
       } else {
-        console.log('✅ Stats loaded successfully')
         setStats(statsResult.data)
       }
       
@@ -384,15 +383,24 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Mostrar P&L si hay trades */}
-                {stats && stats.total_trades > 0 && stats.total_pnl_percentage && (
+                {stats && stats.total_trades > 0 && (
                   <div className="bg-gray-800/50 rounded-lg p-3 mb-3">
-                    <div className="flex justify-between items-center text-sm">
+                    <div className="flex justify-between items-center text-sm mb-2">
                       <span className="text-gray-400">P&L Total:</span>
                       <span className={`font-medium ${
-                        stats.total_pnl_percentage > 0 ? 'text-green-400' : 
-                        stats.total_pnl_percentage < 0 ? 'text-red-400' : 'text-gray-400'
+                        (stats.total_pnl_money || 0) > 0 ? 'text-green-400' : 
+                        (stats.total_pnl_money || 0) < 0 ? 'text-red-400' : 'text-gray-400'
                       }`}>
-                        {stats.total_pnl_percentage > 0 ? '+' : ''}{stats.total_pnl_percentage.toFixed(2)}%
+                        {stats.total_pnl_money ? `${stats.total_pnl_money > 0 ? '+' : ''}$${stats.total_pnl_money.toFixed(2)}` : '$0.00'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400">P&L (%):</span>
+                      <span className={`font-medium ${
+                        (stats.total_pnl_percentage || 0) > 0 ? 'text-green-400' : 
+                        (stats.total_pnl_percentage || 0) < 0 ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {stats.total_pnl_percentage ? `${stats.total_pnl_percentage > 0 ? '+' : ''}${stats.total_pnl_percentage.toFixed(2)}%` : '0%'}
                       </span>
                     </div>
                   </div>

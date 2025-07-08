@@ -262,7 +262,7 @@ export default function DashboardPage() {
                 <div className="text-right">
                   <div className="text-sm opacity-90">P&L Total</div>
                   <div className={`text-2xl font-bold ${(stats?.totalPnL || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    {(stats?.totalPnL || 0) >= 0 ? '+' : ''}{formatCurrency(stats?.totalPnL || 0)}
+                    {stats?.totalPnL ? `${stats.totalPnL > 0 ? '+' : ''}$${stats.totalPnL.toFixed(2)}` : '$0.00'}
                   </div>
                   <div className="text-sm opacity-90">
                     {(stats?.totalPnL || 0) >= 0 ? '+' : ''}{formatPercentage(((stats?.totalPnL || 0) / (stats?.accountBalance || 1000)) * 100)}
