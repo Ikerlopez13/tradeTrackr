@@ -14,9 +14,10 @@ interface DailyPnL {
 
 interface ProfitCalendarProps {
   className?: string;
+  onMonthChange?: (date: Date) => void;
 }
 
-export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) {
+export default function ProfitCalendar({ className = '', onMonthChange }: ProfitCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dailyData, setDailyData] = useState<DailyPnL[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +25,20 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
 
   const supabase = createClient();
 
+  // Notificar la fecha inicial cuando se monta el componente
+  useEffect(() => {
+    if (onMonthChange) {
+      onMonthChange(currentDate);
+    }
+  }, [onMonthChange]); // Solo se ejecuta cuando se monta o cambia onMonthChange
+
   useEffect(() => {
     loadMonthlyData();
-  }, [currentDate]);
+    // Notificar al componente padre cuando cambia el mes
+    if (onMonthChange) {
+      onMonthChange(currentDate);
+    }
+  }, [currentDate, onMonthChange]);
 
   const loadMonthlyData = async () => {
     try {
@@ -140,10 +152,12 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
 
   const getPnLIntensity = (pnl: number) => {
     const absValue = Math.abs(pnl);
-    if (absValue >= 5) return 'opacity-100';
-    if (absValue >= 3) return 'opacity-80';
-    if (absValue >= 1) return 'opacity-60';
-    return 'opacity-40';
+    // Ajustar los rangos para dinero en lugar de porcentaje
+    if (absValue >= 100) return 'opacity-100'; // $100+
+    if (absValue >= 50) return 'opacity-80';   // $50-$99
+    if (absValue >= 25) return 'opacity-60';   // $25-$49
+    if (absValue >= 10) return 'opacity-40';   // $10-$24
+    return 'opacity-30'; // Menos de $10
   };
 
   const monthNames = [
@@ -196,7 +210,7 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
           }
           
           const dayData = getDayData(day);
-          const pnl = dayData?.pnl_percentage || 0;
+          const pnl = dayData?.pnl_money || 0; // CAMBIAR: usar dinero en lugar de porcentaje
           const isToday = new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
           
           return (
@@ -213,7 +227,7 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
               {dayData && (
                 <>
                   <span className="text-xs font-bold">
-                    {pnl > 0 ? '+' : ''}{pnl.toFixed(1)}%
+                    {pnl > 0 ? '+' : ''}${Math.abs(pnl).toFixed(0)} {/* CAMBIAR: mostrar dinero */}
                   </span>
                   <span className="text-xs opacity-75">
                     {dayData.trades_count}
@@ -242,7 +256,7 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
           </div>
         </div>
         <div className="text-right">
-          <span>Intensidad basada en % de ganancia/pérdida</span>
+          <span>Intensidad basada en $ de ganancia/pérdida</span>
         </div>
       </div>
 
@@ -269,16 +283,16 @@ export default function ProfitCalendar({ className = '' }: ProfitCalendarProps) 
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">P&L Porcentaje:</span>
-                <span className={`font-bold ${selectedDay.pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {selectedDay.pnl_percentage > 0 ? '+' : ''}{selectedDay.pnl_percentage.toFixed(2)}%
+                <span className="text-gray-400">P&L Dinero:</span>
+                <span className={`font-bold ${selectedDay.pnl_money >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {selectedDay.pnl_money > 0 ? '+' : ''}${selectedDay.pnl_money.toFixed(2)}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">P&L Dinero:</span>
-                <span className={`font-bold ${selectedDay.pnl_money >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {selectedDay.pnl_money > 0 ? '+' : ''}${selectedDay.pnl_money.toFixed(2)}
+                <span className="text-gray-400">P&L Porcentaje:</span>
+                <span className={`font-bold ${selectedDay.pnl_percentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {selectedDay.pnl_percentage > 0 ? '+' : ''}{selectedDay.pnl_percentage.toFixed(2)}%
                 </span>
               </div>
               

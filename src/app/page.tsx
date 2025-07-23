@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PnLCalculator from '@/components/PnLCalculator';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -65,6 +66,9 @@ export default function JournalingPage() {
     images: [] as File[]
   });
 
+  // Estado para el balance de cuenta del usuario
+  const [accountBalance, setAccountBalance] = useState(1000);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -76,14 +80,64 @@ export default function JournalingPage() {
         return;
       }
       setUser(user);
+      
+      // Cargar balance de cuenta del usuario
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('account_balance')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.account_balance) {
+        setAccountBalance(profile.account_balance);
+      }
+      
       setLoading(false);
     };
 
     getUser();
   }, [router]);
 
+  // Función para calcular P&L automáticamente
+  const calculatePnL = (field: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    
+    if (field === 'pnl_money' && value !== '') {
+      // Calcular porcentaje basado en dinero
+      const percentage = (numValue / accountBalance) * 100;
+      setFormData(prev => ({
+        ...prev,
+        pnl_money: value,
+        pnl_percentage: percentage.toFixed(4)
+      }));
+    } else if (field === 'pnl_percentage' && value !== '') {
+      // Calcular dinero basado en porcentaje  
+      const money = (accountBalance * numValue) / 100;
+      setFormData(prev => ({
+        ...prev,
+        pnl_percentage: value,
+        pnl_money: money.toFixed(2)
+      }));
+    } else {
+      // Actualización normal sin cálculo
+      updateFormData(field, value);
+    }
+  };
+
+  // Manejador para cambios en el componente PnLCalculator
+  const handlePnLChange = (money: string, percentage: string) => {
+    setFormData(prev => ({
+      ...prev,
+      pnl_money: money,
+      pnl_percentage: percentage
+    }));
+  };
+
   const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const nextStep = () => {
@@ -609,30 +663,17 @@ export default function JournalingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">P&L Dinero ($) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.pnl_money}
-                  onChange={(e) => updateFormData('pnl_money', e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="25.50"
+              {/* Componente mejorado de P&L */}
+              <div className="md:col-span-2">
+                <PnLCalculator
+                  accountBalance={accountBalance}
+                  pnl_money={formData.pnl_money}
+                  pnl_percentage={formData.pnl_percentage}
+                  onPnLChange={handlePnLChange}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">P&L Porcentaje (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.pnl_percentage}
-                  onChange={(e) => updateFormData('pnl_percentage', e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="2.55"
-                />
-              </div>
-
+              {/* Campo de Pips */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Pips</label>
                 <input

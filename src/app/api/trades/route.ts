@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Obtener datos del request
     const body = await request.json()
-    const {
+    let {
       title,
       pair,
       timeframe,
@@ -93,8 +93,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // LÓGICA DE CÁLCULO AUTOMÁTICO DE P&L
+    // Obtener balance del usuario
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('account_balance')
+      .eq('id', user.id)
+      .single()
+
+    const accountBalance = profile?.account_balance || 1000
+
+    // Convertir strings a números
+    const pnlMoneyNum = pnl_money ? parseFloat(pnl_money) : null
+    const pnlPercentageNum = pnl_percentage ? parseFloat(pnl_percentage) : null
+
+    // CASO 1: Solo se proporciona dinero, calcular porcentaje
+    if (pnlMoneyNum !== null && pnlPercentageNum === null) {
+      const calculatedPercentage = (pnlMoneyNum / accountBalance) * 100
+      pnl_percentage = Math.round(calculatedPercentage * 10000) / 10000 // 4 decimales
+      
+      console.log(`🔄 Calculado P&L porcentaje: ${pnl_percentage}% basado en $${pnlMoneyNum}`)
+    }
+
+    // CASO 2: Solo se proporciona porcentaje, calcular dinero
+    if (pnlPercentageNum !== null && pnlMoneyNum === null) {
+      const calculatedMoney = (accountBalance * pnlPercentageNum) / 100
+      pnl_money = Math.round(calculatedMoney * 100) / 100 // 2 decimales
+      
+      console.log(`🔄 Calculado P&L dinero: $${pnl_money} basado en ${pnlPercentageNum}%`)
+    }
+
+    // CASO 3: Se proporcionan ambos, validar consistencia
+    if (pnlMoneyNum !== null && pnlPercentageNum !== null) {
+      const expectedPercentage = (pnlMoneyNum / accountBalance) * 100
+      const percentageDiff = Math.abs(expectedPercentage - pnlPercentageNum)
+      
+      // Si la diferencia es mayor al 5%, usar el dinero como fuente de verdad
+      if (percentageDiff > 5) {
+        pnl_percentage = Math.round(expectedPercentage * 10000) / 10000
+        console.log(`🔄 Corregido P&L inconsistente: ${pnlPercentageNum}% → ${pnl_percentage}%`)
+      }
+    }
+
     // VALIDACIÓN CRÍTICA: Verificar límites de usuario
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileCheck, error: profileError } = await supabase
       .from('profiles')
       .select('is_premium')
       .eq('id', user.id)
@@ -108,7 +150,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const isPremium = profile?.is_premium || false
+    const isPremium = profileCheck?.is_premium || false
 
     // Si no es premium, verificar límite de trades
     if (!isPremium) {
@@ -182,13 +224,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log(`✅ Trade guardado exitosamente:`, {
+      id: trade.id,
+      pnl_money: trade.pnl_money,
+      pnl_percentage: trade.pnl_percentage,
+      account_balance: accountBalance
+    })
+
     return NextResponse.json({ 
       trade,
-      message: 'Trade guardado exitosamente'
+      message: 'Trade guardado exitosamente',
+      calculated_values: {
+        pnl_money: trade.pnl_money,
+        pnl_percentage: trade.pnl_percentage
+      }
     })
 
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Error creating trade:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' }, 
       { status: 500 }

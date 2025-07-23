@@ -24,6 +24,7 @@ export default function ProfitCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Fecha seleccionada en el calendario
   const router = useRouter();
   const supabase = createClient();
 
@@ -35,18 +36,29 @@ export default function ProfitCalendarPage() {
         return;
       }
       setUser(user);
-      await loadMonthlyStats(user.id);
+      await loadMonthlyStats(user.id, selectedDate);
       setLoading(false);
     };
 
     getUser();
   }, [router, supabase.auth]);
 
-  const loadMonthlyStats = async (userId: string) => {
+  // Cargar estadísticas cuando cambia la fecha seleccionada
+  useEffect(() => {
+    if (user) {
+      loadMonthlyStats(user.id, selectedDate);
+    }
+  }, [selectedDate, user]);
+
+  // Callback para cuando cambia el mes en el calendario
+  const handleMonthChange = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const loadMonthlyStats = async (userId: string, date: Date = new Date()) => {
     try {
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
+      const year = date.getFullYear();
+      const month = date.getMonth();
       
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0);
@@ -65,7 +77,7 @@ export default function ProfitCalendarPage() {
 
       if (!trades || trades.length === 0) {
         setMonthlyStats({
-          month: currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+          month: date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
           total_pnl_percentage: 0,
           total_pnl_money: 0,
           total_trades: 0,
@@ -101,7 +113,7 @@ export default function ProfitCalendarPage() {
       const worstDay = dailyValues.length > 0 ? Math.min(...dailyValues) : 0;
 
       setMonthlyStats({
-        month: currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+        month: date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
         total_pnl_percentage: totalPnlPercentage,
         total_pnl_money: totalPnlMoney,
         total_trades: trades.length,
@@ -206,7 +218,7 @@ export default function ProfitCalendarPage() {
 
           {/* Profit Calendar */}
           <div className="mb-8">
-            <ProfitCalendar />
+            <ProfitCalendar onMonthChange={handleMonthChange} />
           </div>
 
           {/* Additional Stats */}

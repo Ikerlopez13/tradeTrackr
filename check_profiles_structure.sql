@@ -1,4 +1,4 @@
--- Verificar la estructura real de la tabla profiles
+-- Script para verificar la estructura de la tabla profiles
 SELECT 
     column_name,
     data_type,
@@ -6,7 +6,7 @@ SELECT
     column_default
 FROM information_schema.columns 
 WHERE table_name = 'profiles' 
-    AND table_schema = 'public'
+AND table_schema = 'public'
 ORDER BY ordinal_position;
 
 -- Ver algunos registros de ejemplo (si existen)

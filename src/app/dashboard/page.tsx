@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import DailyPnLChart from '@/components/DailyPnLChart';
 import { 
   BarChart2, 
   TrendingUp, 
@@ -327,7 +328,8 @@ export default function DashboardPage() {
                   Estadísticas de Trading
                 </h2>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Trading Statistics with P&L Chart */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                   <div className="bg-gray-900/50 rounded-lg p-4">
                     <div className="text-gray-400 text-sm mb-1">Total Trades</div>
                     <div className="text-2xl font-bold text-white">{stats?.totalTrades || 0}</div>
@@ -371,14 +373,14 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Mock Chart Placeholder */}
-                <div className="mt-6 bg-gray-900/30 rounded-lg p-4 h-64 flex items-center justify-center">
-                  <div className="text-center text-gray-400">
-                    <LineChart className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>Gráfico de Seguimiento de Cuenta</p>
-                    <p className="text-sm">Próximamente disponible</p>
-                  </div>
-                </div>
+                {/* Daily P&L Chart */}
+                {user && (
+                  <DailyPnLChart 
+                    userId={user.id} 
+                    days={30} 
+                    className="mt-6" 
+                  />
+                )}
               </div>
             </div>
 
